@@ -1,0 +1,47 @@
+name: Build and Deploy WordPress Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'  # Само при тагове
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      PLUGIN_SLUG: bizzio-sync-gencloud
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.1
+
+      - name: WordPress Coding Standards check
+        run: |
+          composer global require wp-coding-standards/wpcs
+          ~/.composer/vendor/bin/phpcs --standard=WordPress ./bizzio-sync-gencloud
+
+      - name: Build ZIP
+        run: |
+          mkdir -p build
+          cd bizzio-sync-gencloud
+          zip -r ../build/${{ env.PLUGIN_SLUG }}.zip . -x "*.git*" "*.github*" "node_modules/*"
+          cd ..
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PLUGIN_SLUG }}-zip
+          path: build/${{ env.PLUGIN_SLUG }}.zip
+
+    #   - name: Deploy to WordPress.org
+    #     if: ${{ secrets.WPORG_USERNAME != '' }}
+    #     uses: 10up/action-wordpress-plugin-deploy@v2
+    #     with:
+    #       plugin_slug: ${{ env.PLUGIN_SLUG }}
+    #       svn_username: ${{ secrets.WPORG_USERNAME }}
+    #       svn_password: ${{ secrets.WPORG_PASSWORD }}
