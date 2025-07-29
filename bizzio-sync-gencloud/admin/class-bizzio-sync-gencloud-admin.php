@@ -839,12 +839,15 @@ class Bizzio_Sync_Gencloud_Admin
 	 * @param string $request_body The XML request body.
 	 * @return array|WP_Error The response array or WP_Error on failure.
 	 */
-	private function _make_soap_request($soap_action, $request_body)
+		private function _make_soap_request($soap_action, $request_body)
 	{
 		$endpoint = 'https://bizzio.gencloud.bg/Services/Extensions/RiznShopExtService.svc';
 
 		if (defined('BIZZIO_SYNC_GENCLOUD_DEBUG_LOG') && BIZZIO_SYNC_GENCLOUD_DEBUG_LOG) {
-			error_log('Bizzio Sync Gencloud - Request Body: ' . $request_body);
+            $sanitized_request_body = preg_replace('/(<biz:Database>)(.*)(<\/biz:Database>)/i', '$1[REDACTED]$3', $request_body);
+            $sanitized_request_body = preg_replace('/(<biz:Username>)(.*)(<\/biz:Username>)/i', '$1[REDACTED]$3', $sanitized_request_body);
+            $sanitized_request_body = preg_replace('/(<biz:Password>)(.*)(<\/biz:Password>)/i', '$1[REDACTED]$3', $sanitized_request_body);
+			error_log('Bizzio Sync Gencloud - Request Body: ' . $sanitized_request_body);
 		}
 
 		$args = array(

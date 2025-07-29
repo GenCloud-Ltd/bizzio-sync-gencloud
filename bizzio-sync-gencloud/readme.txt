@@ -1,0 +1,55 @@
+=== Bizzio Sync for WooCommerce ===
+Contributors: gencloud
+Tags: woocommerce, bizzio, erp, sync, products, categories, import
+Requires at least: 5.0
+Tested up to: 6.5
+Stable tag: 1.0.0
+Requires PHP: 7.4
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Bizzio Sync for WooCommerce allows you to easily import products and categories from your Bizzio ERP to your WooCommerce store.
+
+== Description ==
+
+This plugin provides a seamless integration between your Bizzio ERP and WooCommerce. It allows you to:
+
+*   **Import Products:** Sync your products from Bizzio to WooCommerce, including product name, description, price, and stock quantity.
+*   **Import Categories:** Sync your product categories from Bizzio to WooCommerce, maintaining the category hierarchy.
+*   **Batch Processing:** The import process is handled in batches to prevent server timeouts and ensure a smooth import, even with a large number of products and categories.
+*   **Progress Tracking:** The plugin provides a real-time progress bar to monitor the import process.
+*   **Connection Testing:** You can easily test the connection to your Bizzio ERP to ensure that the API credentials are correct.
+
+== Installation ==
+
+1.  Upload the `bizzio-sync-gencloud` folder to the `/wp-content/plugins/` directory.
+2.  Activate the plugin through the 'Plugins' menu in WordPress.
+3.  Go to the **Bizzio Sync** menu in your WordPress admin area.
+4.  Enter your Bizzio API credentials in the **Settings** tab.
+5.  Click **Save Changes**.
+6.  You can now import products and categories from the **Products** and **Categories** tabs.
+
+== Frequently Asked Questions ==
+
+= What are the requirements for this plugin? =
+
+You need to have a Bizzio ERP API credentials and WooCommerce installed on your WordPress site.
+
+= Where can I get support? =
+
+For support, please contact us at [web@gencloud.bg](mailto:web@gencloud.bg).
+
+== Screenshots ==
+
+1.  The Bizzio Sync settings page.
+2.  The product import page.
+3.  The category import page.
+
+== Changelog ==
+
+= 1.0.0 - 2024-07-29 =
+* Initial release.
+* Added product and category import functionality.
+* Added batch processing and progress tracking.
+* Added connection testing.
+
