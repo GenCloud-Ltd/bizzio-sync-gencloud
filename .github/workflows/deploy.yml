@@ -21,19 +21,24 @@ jobs:
         with:
           php-version: 8.1
           tools: composer
+
+      - name: Install and Configure PHPCS
+        run: |
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer global require "dealerdirect/phpcodesniffer-composer-installer"
+          composer global require "squizlabs/php_codesniffer=*"
+          composer global require "wp-coding-standards/wpcs"
+          ~/.composer/vendor/bin/phpcs --config-set installed_paths ~/.composer/vendor/wp-coding-standards/wpcs
+
       - name: Auto-fix code style issues
         run: ~/.composer/vendor/bin/phpcbf ./bizzio-sync-gencloud
 
-      - name: Configure Composer for PHPCS plugin
-        run: |
-          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
-          composer global require "squizlabs/php_codesniffer=*"
-          composer global require "wp-coding-standards/wpcs"
-          ~/.composer/vendor/bin/phpcs --standard=WordPress ./bizzio-sync-gencloud
+      - name: Run WordPress Coding Standards (PHPCS)
+        run: ~/.composer/vendor/bin/phpcs ./bizzio-sync-gencloud
 
-      - name: Run WordPress Coding Standards
-        run: |
-          ~/.composer/vendor/bin/phpcs --standard=WordPress ./bizzio-sync-gencloud
+      # - name: Run WordPress Coding Standards
+      #   run: |
+      #     ~/.composer/vendor/bin/phpcs --standard=WordPress ./bizzio-sync-gencloud
 
       - name: Build plugin ZIP
         run: |
