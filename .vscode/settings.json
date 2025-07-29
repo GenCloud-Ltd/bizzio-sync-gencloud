@@ -1,0 +1,7 @@
+{
+  "phpcs.enable": true,
+  "phpcs.standard": "WordPress",
+  "phpcs.executablePath": "${workspaceRoot}/vendor/bin/phpcs",
+  "phpcbf.executablePath": "${workspaceRoot}/vendor/bin/phpcbf",
+  "editor.formatOnSave": true
+}

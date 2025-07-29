@@ -1,10 +1,10 @@
 name: Build and Deploy WordPress Plugin
 
 on:
-  workflow_dispatch:    # Позволява ръчно стартиране от GitHub UI
+  workflow_dispatch: # Позволява ръчно стартиране от GitHub UI
   push:
     tags:
-      - 'v*'             # Стартира се при всеки таг от вида v1.0.0
+      - "v*" # Стартира се при всеки таг от вида v1.0.0
 
 jobs:
   build-and-deploy:
@@ -21,6 +21,8 @@ jobs:
         with:
           php-version: 8.1
           tools: composer
+      - name: Auto-fix code style issues
+        run: ~/.composer/vendor/bin/phpcbf ./bizzio-sync-gencloud
 
       - name: Configure Composer for PHPCS plugin
         run: |
