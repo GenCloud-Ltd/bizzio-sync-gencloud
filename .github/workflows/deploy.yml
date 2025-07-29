@@ -32,11 +32,12 @@ jobs:
           zip -r ../build/${{ env.PLUGIN_SLUG }}.zip . -x "*.git*" "*.github*" "node_modules/*"
           cd ..
 
-      - name: Upload ZIP artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.PLUGIN_SLUG }}-zip
-          path: build/${{ env.PLUGIN_SLUG }}.zip
+      - name: Build plugin ZIP
+        run: |
+            mkdir -p build
+            cd bizzio-sync-gencloud
+            zip -r ../build/bizzio-sync-gencloud.zip . -x "*.git*" "*.DS_Store"
+            cd ..
 
     #   - name: Deploy to WordPress.org
     #     if: ${{ secrets.WPORG_USERNAME != '' }}

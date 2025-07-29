@@ -1,0 +1,5 @@
+# Ignore everything outside plugin folder when exporting
+/* export-ignore
+!/bizzio-sync-gencloud
+/bizzio-sync-gencloud/.gitignore export-ignore
+/bizzio-sync-gencloud/.github export-ignore
