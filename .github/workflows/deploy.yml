@@ -25,16 +25,20 @@ jobs:
       - name: Install and Configure PHPCS
         run: |
           composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
-          composer global require "dealerdirect/phpcodesniffer-composer-installer"
-          composer global require "squizlabs/php_codesniffer=*"
-          composer global require "wp-coding-standards/wpcs"
-          ~/.composer/vendor/bin/phpcs --config-set installed_paths ~/.composer/vendor/wp-coding-standards/wpcs
+          composer global require dealerdirect/phpcodesniffer-composer-installer
+          composer global require squizlabs/php_codesniffer
+          composer global require wp-coding-standards/wpcs
+          $(composer global config --global-dir --absolute)/vendor/bin/phpcs --config-set installed_paths $(composer global config --global-dir --absolute)/vendor/wp-coding-standards/wpcs
+
+      - name: Get Composer global bin path
+        id: phpcs-path
+        run: echo "path=$(composer global config --global-dir --absolute)/vendor/bin" >> $GITHUB_OUTPUT
 
       - name: Auto-fix code style issues
-        run: ~/.composer/vendor/bin/phpcbf ./bizzio-sync-gencloud
+        run: ${{ steps.phpcs-path.outputs.path }}/phpcbf ./bizzio-sync-gencloud
 
-      - name: Run WordPress Coding Standards (PHPCS)
-        run: ~/.composer/vendor/bin/phpcs ./bizzio-sync-gencloud
+      - name: Run PHPCS
+        run: ${{ steps.phpcs-path.outputs.path }}/phpcs ./bizzio-sync-gencloud
 
       # - name: Run WordPress Coding Standards
       #   run: |
