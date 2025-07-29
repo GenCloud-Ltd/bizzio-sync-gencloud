@@ -1,9 +1,10 @@
 name: Build and Deploy WordPress Plugin
 
 on:
+  workflow_dispatch:    # Позволява ръчно стартиране от GitHub UI
   push:
     tags:
-      - 'v*'  # Само при тагове
+      - 'v*'             # Стартира се при всеки таг от вида v1.0.0
 
 jobs:
   build-and-deploy:
@@ -12,37 +13,44 @@ jobs:
       PLUGIN_SLUG: bizzio-sync-gencloud
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup PHP
+      - name: Install PHP and Composer
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.1
+          tools: composer
 
-      - name: WordPress Coding Standards check
+      - name: Configure Composer for PHPCS plugin
         run: |
-          composer global require wp-coding-standards/wpcs
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer global require "squizlabs/php_codesniffer=*"
+          composer global require "wp-coding-standards/wpcs"
+          ~/.composer/vendor/bin/phpcs --config-set installed_paths ~/.composer/vendor/wp-coding-standards/wpcs
+
+      - name: Run WordPress Coding Standards
+        run: |
           ~/.composer/vendor/bin/phpcs --standard=WordPress ./bizzio-sync-gencloud
-
-      - name: Build ZIP
-        run: |
-          mkdir -p build
-          cd bizzio-sync-gencloud
-          zip -r ../build/${{ env.PLUGIN_SLUG }}.zip . -x "*.git*" "*.github*" "node_modules/*"
-          cd ..
 
       - name: Build plugin ZIP
         run: |
-            mkdir -p build
-            cd bizzio-sync-gencloud
-            zip -r ../build/bizzio-sync-gencloud.zip . -x "*.git*" "*.DS_Store"
-            cd ..
+          mkdir -p build
+          cd bizzio-sync-gencloud
+          zip -r ../build/${{ env.PLUGIN_SLUG }}.zip . -x "*.git*" "*.DS_Store" "node_modules/*"
+          cd ..
 
-    #   - name: Deploy to WordPress.org
-    #     if: ${{ secrets.WPORG_USERNAME != '' }}
-    #     uses: 10up/action-wordpress-plugin-deploy@v2
-    #     with:
-    #       plugin_slug: ${{ env.PLUGIN_SLUG }}
-    #       svn_username: ${{ secrets.WPORG_USERNAME }}
-    #       svn_password: ${{ secrets.WPORG_PASSWORD }}
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PLUGIN_SLUG }}-zip
+          path: build/${{ env.PLUGIN_SLUG }}.zip
+
+      # Optional: Deploy to WordPress.org (uncomment when ready)
+      # - name: Deploy to WordPress.org
+      #   if: ${{ secrets.WPORG_USERNAME != '' }}
+      #   uses: 10up/action-wordpress-plugin-deploy@v2
+      #   with:
+      #     plugin_slug: ${{ env.PLUGIN_SLUG }}
+      #     svn_username: ${{ secrets.WPORG_USERNAME }}
+      #     svn_password: ${{ secrets.WPORG_PASSWORD }}
