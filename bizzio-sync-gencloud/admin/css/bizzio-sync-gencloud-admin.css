@@ -1,0 +1,24 @@
+/**
+ * All of the CSS for your admin-specific functionality should be
+ * included in this file.
+ */
+.wrap h2 {
+	margin-top: 20px;
+}
+.wrap .helper {
+	display: block;
+	font-size: 0.8em;
+	color: #666;
+	margin-top: 5px;
+}
+
+.bizzio-progress-bar {
+    background-color: #f3f3f3;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    height: 20px;
+    text-align: center;
+    line-height: 20px;
+    color: #fff;
+    background-color: #4caf50;
+}
