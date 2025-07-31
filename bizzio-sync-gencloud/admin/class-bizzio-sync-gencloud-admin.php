@@ -378,12 +378,31 @@ class Bizzio_Sync_Gencloud_Admin {
             $product_qty = $article_data['Qty'];
             $product_description = $article_data['Description'];
 
-			// Check if product exists by barcode
-			if ( function_exists('wc_get_product_id_by_sku') ) {
-				$product_id = wc_get_product_id_by_sku( $product_barcode );
-			} else {
-				$product_id = $this->_get_product_id_by_sku_fallback( $product_barcode );
-			}
+            // Check if product exists by barcode
+            $product_id = 0;
+            if ( function_exists('wc_get_products') ) {
+                $products = wc_get_products( array( 'sku' => $product_barcode, 'limit' => 1 ) );
+                if ( !empty($products) ) {
+                    $product_id = $products[0]->get_id();
+                }
+            } elseif ( function_exists('wc_get_product_id_by_sku') ) {
+                $product_id = wc_get_product_id_by_sku( $product_barcode );
+            } else {
+                $posts = get_posts(array(
+                    'post_type' => 'product',
+                    'post_status' => 'any',
+                    'numberposts' => 1,
+                    'fields' => 'ids',
+                    'meta_query' => array(
+                        array(
+                            'key' => '_sku',
+                            'value' => $product_barcode,
+                            'compare' => '='
+                        )
+                    )
+                ));
+                $product_id = !empty($posts) ? $posts[0] : 0;
+            }
 
 			$product_post_data = array(
 				'post_title'    => $product_name,
@@ -905,25 +924,5 @@ class Bizzio_Sync_Gencloud_Admin {
 		if ( ! is_wp_error( $attach_id ) ) {
 			set_post_thumbnail( $product_id, $attach_id );
 		}
-	}
-
-	/**
-	 * Fallback for wc_get_product_id_by_sku if WooCommerce is not active
-	 */
-	private function _get_product_id_by_sku_fallback( $sku ) {
-        $posts = get_posts(array(
-            'post_type' => 'product',
-            'post_status' => 'any',
-            'numberposts' => 1,
-            'fields' => 'ids',
-            'meta_query' => array(
-                array(
-                    'key' => '_sku',
-                    'value' => $sku,
-                    'compare' => '='
-                )
-            )
-        ));
-        return !empty($posts) ? $posts[0] : 0;
 	}
 }
