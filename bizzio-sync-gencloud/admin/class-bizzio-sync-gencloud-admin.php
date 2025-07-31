@@ -387,21 +387,6 @@ class Bizzio_Sync_Gencloud_Admin {
                 }
             } elseif ( function_exists('wc_get_product_id_by_sku') ) {
                 $product_id = wc_get_product_id_by_sku( $product_barcode );
-            } else {
-                $posts = get_posts(array(
-                    'post_type' => 'product',
-                    'post_status' => 'any',
-                    'numberposts' => 1,
-                    'fields' => 'ids',
-                    'meta_query' => array(
-                        array(
-                            'key' => '_sku',
-                            'value' => $product_barcode,
-                            'compare' => '='
-                        )
-                    )
-                ));
-                $product_id = !empty($posts) ? $posts[0] : 0;
             }
 
 			$product_post_data = array(
