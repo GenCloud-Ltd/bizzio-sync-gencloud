@@ -1,6 +1,6 @@
 === Bizzio Sync Gencloud ===
 Contributors: gencloud
-Tags: woocommerce, bizzio, erp, sync, products, categories, import
+Tags: woocommerce, bizzio, erp, sync, import
 Requires at least: 5.0
 Tested up to: 6.8
 Stable tag: 1.0.0
@@ -52,3 +52,4 @@ For support, please contact us at [web@gencloud.bg](mailto:web@gencloud.bg).
 * Added product and category import functionality.
 * Added batch processing and progress tracking.
 * Added connection testing.
+
