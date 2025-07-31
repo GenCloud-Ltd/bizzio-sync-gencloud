@@ -34,14 +34,8 @@ class Bizzio_Sync_Gencloud_i18n {
 	 */
 	public function load_plugin_textdomain() {
 
-		load_plugin_textdomain(
-			'bizzio-sync-gencloud',
-			false,
-			dirname( dirname( plugin_basename( __FILE__ ) ) ) . '/languages/'
-		);
+		// This function is deprecated since WordPress 4.6 and is no longer needed for plugins hosted on WordPress.org.
 
 	}
-
-
 
 }
