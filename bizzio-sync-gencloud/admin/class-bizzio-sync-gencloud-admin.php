@@ -913,11 +913,16 @@ class Bizzio_Sync_Gencloud_Admin {
 	private function _get_product_id_by_sku_fallback( $sku ) {
         $posts = get_posts(array(
             'post_type' => 'product',
-            'meta_key' => '_sku',
-            'meta_value' => $sku,
             'post_status' => 'any',
             'numberposts' => 1,
-            'fields' => 'ids'
+            'fields' => 'ids',
+            'meta_query' => array(
+                array(
+                    'key' => '_sku',
+                    'value' => $sku,
+                    'compare' => '='
+                )
+            )
         ));
         return !empty($posts) ? $posts[0] : 0;
 	}
