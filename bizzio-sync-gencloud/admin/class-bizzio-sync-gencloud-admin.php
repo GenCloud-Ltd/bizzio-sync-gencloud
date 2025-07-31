@@ -555,18 +555,7 @@ class Bizzio_Sync_Gencloud_Admin
 			wp_send_json_error(array('message' => $responseElement->get_error_message(), 'response' => $responseElement->get_error_data()));
 		}
 
-		// Save XML response to a secure directory
-		$upload_dir = wp_upload_dir();
-		$bizzio_dir = $upload_dir['basedir'] . '/bizzio';
-
-		if (! file_exists($bizzio_dir)) {
-			wp_mkdir_p($bizzio_dir);
-		}
-
-		$filename = $bizzio_dir . '/bizzio_response_' . time() . '.xml';
-		file_put_contents($filename, $body);
-
-		wp_send_json_success(array('message' => 'Connection successful! Response saved to ' . $filename, 'response' => $body));
+		wp_send_json_success(array('message' => 'Connection successful!'));
 	}
 
 	/**
@@ -839,14 +828,14 @@ class Bizzio_Sync_Gencloud_Admin
 	 * @param string $request_body The XML request body.
 	 * @return array|WP_Error The response array or WP_Error on failure.
 	 */
-		private function _make_soap_request($soap_action, $request_body)
+	private function _make_soap_request($soap_action, $request_body)
 	{
 		$endpoint = 'https://bizzio.gencloud.bg/Services/Extensions/RiznShopExtService.svc';
 
 		if (defined('BIZZIO_SYNC_GENCLOUD_DEBUG_LOG') && BIZZIO_SYNC_GENCLOUD_DEBUG_LOG) {
-            $sanitized_request_body = preg_replace('/(<biz:Database>)(.*)(<\/biz:Database>)/i', '$1[REDACTED]$3', $request_body);
-            $sanitized_request_body = preg_replace('/(<biz:Username>)(.*)(<\/biz:Username>)/i', '$1[REDACTED]$3', $sanitized_request_body);
-            $sanitized_request_body = preg_replace('/(<biz:Password>)(.*)(<\/biz:Password>)/i', '$1[REDACTED]$3', $sanitized_request_body);
+			$sanitized_request_body = preg_replace('/(<biz:Database>)(.*)(<\/biz:Database>)/i', '$1[REDACTED]$3', $request_body);
+			$sanitized_request_body = preg_replace('/(<biz:Username>)(.*)(<\/biz:Username>)/i', '$1[REDACTED]$3', $sanitized_request_body);
+			$sanitized_request_body = preg_replace('/(<biz:Password>)(.*)(<\/biz:Password>)/i', '$1[REDACTED]$3', $sanitized_request_body);
 			error_log('Bizzio Sync Gencloud - Request Body: ' . $sanitized_request_body);
 		}
 

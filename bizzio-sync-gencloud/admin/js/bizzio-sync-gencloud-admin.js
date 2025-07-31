@@ -1,9 +1,9 @@
-(function( $ ) {
+(function ($) {
 	'use strict';
 
-	$(document).ready(function() {
+	$(document).ready(function () {
 		// Test Connection AJAX
-		$('#bizzio-test-connection').on('click', function(e) {
+		$('#bizzio-test-connection').on('click', function (e) {
 			e.preventDefault();
 
 			var data = {
@@ -11,7 +11,7 @@
 				'security': bizzio_sync_gencloud_ajax.test_connection_nonce
 			};
 
-			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function(response) {
+			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function (response) {
 				var resultDiv = $('#bizzio-test-connection-result');
 				if (response.success) {
 					resultDiv.html('<p style="color: green;">' + response.data.message + '</p>');
@@ -23,11 +23,11 @@
 		});
 
 		// Product Import AJAX
-		$('#bizzio-import-products').on('click', function(e) {
+		$('#bizzio-import-products').on('click', function (e) {
 			e.preventDefault();
 
 			var $button = $(this);
-			$button.prop('disabled', true).text('Importing...');
+			$button.prop('disabled', true).text('Please wait, don\'t close the page...');
 			$('#bizzio-product-import-status').html('<p>Initiating product import...</p>');
 			$('#bizzio-product-import-progress-bar').css('width', '0%').text('0%');
 
@@ -38,7 +38,7 @@
 			if (typeof BIZZIO_SYNC_GENCLOUD_DEBUG_LOG !== 'undefined' && BIZZIO_SYNC_GENCLOUD_DEBUG_LOG) {
 				console.log('[BIZZIO DEBUG] Import Products AJAX: action=' + data.action + ', nonce=' + data.security);
 			}
-			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function(response) {
+			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function (response) {
 				if (response.success) {
 					$('#bizzio-product-import-status').html('<p style="color: green;">' + response.data.message + '</p>');
 					// Start processing batches
@@ -61,7 +61,7 @@
 			if (typeof BIZZIO_SYNC_GENCLOUD_DEBUG_LOG !== 'undefined' && BIZZIO_SYNC_GENCLOUD_DEBUG_LOG) {
 				console.log('[BIZZIO DEBUG] Process Product Batch AJAX: action=' + data.action + ', nonce=' + data.security);
 			}
-			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function(response) {
+			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function (response) {
 				console.log('Batch processing response:', response);
 				if (response.success) {
 					if (response.data.status === 'in_progress') {
@@ -86,7 +86,7 @@
 			if (typeof BIZZIO_SYNC_GENCLOUD_DEBUG_LOG !== 'undefined' && BIZZIO_SYNC_GENCLOUD_DEBUG_LOG) {
 				console.log('[BIZZIO DEBUG] Get Import Progress AJAX: action=' + data.action + ', nonce=' + data.security);
 			}
-			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function(response) {
+			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function (response) {
 				if (response.success) {
 					var progress = response.data.progress;
 					var total_articles = response.data.total_articles;
@@ -113,11 +113,11 @@
 		}
 
 		// Category Import AJAX
-		$('#bizzio-import-categories').on('click', function(e) {
+		$('#bizzio-import-categories').on('click', function (e) {
 			e.preventDefault();
 
 			var $button = $(this);
-			$button.prop('disabled', true).text('Importing...');
+			$button.prop('disabled', true).text('Importing , please don\'t close the page...');
 			$('#bizzio-category-import-status').html('<p>Initiating category import...</p>');
 			$('#bizzio-category-import-progress-bar').css('width', '0%').text('0%');
 
@@ -128,7 +128,7 @@
 			if (typeof BIZZIO_SYNC_GENCLOUD_DEBUG_LOG !== 'undefined' && BIZZIO_SYNC_GENCLOUD_DEBUG_LOG) {
 				console.log('[BIZZIO DEBUG] Import Categories AJAX: action=' + data.action + ', nonce=' + data.security);
 			}
-			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function(response) {
+			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function (response) {
 				if (response.success) {
 					$('#bizzio-category-import-status').html('<p style="color: green;">' + response.data.message + '</p>');
 					// Start processing batches
@@ -151,7 +151,7 @@
 			if (typeof BIZZIO_SYNC_GENCLOUD_DEBUG_LOG !== 'undefined' && BIZZIO_SYNC_GENCLOUD_DEBUG_LOG) {
 				console.log('[BIZZIO DEBUG] Process Category Batch AJAX: action=' + data.action + ', nonce=' + data.security);
 			}
-			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function(response) {
+			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function (response) {
 				console.log('Category batch processing response:', response);
 				if (response.success) {
 					if (response.data.status === 'in_progress') {
@@ -176,7 +176,7 @@
 			if (typeof BIZZIO_SYNC_GENCLOUD_DEBUG_LOG !== 'undefined' && BIZZIO_SYNC_GENCLOUD_DEBUG_LOG) {
 				console.log('[BIZZIO DEBUG] Get Category Import Progress AJAX: action=' + data.action + ', nonce=' + data.security);
 			}
-			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function(response) {
+			$.post(bizzio_sync_gencloud_ajax.ajax_url, data, function (response) {
 				if (response.success) {
 					var progress = response.data.progress;
 					var total_categories = response.data.total_categories;
@@ -204,4 +204,4 @@
 
 	});
 
-})( jQuery );
+})(jQuery);
