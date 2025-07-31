@@ -21,6 +21,6 @@ jobs:
         uses: wordpress/plugin-check-action@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          build-dir: "./genbizzio-sync-gencloud" # или ./my-plugin ако е в подпапка
+          build-dir: "./bizzio-sync-gencloud" # или ./my-plugin ако е в подпапка
           strict: true
           include-experimental: true

@@ -63,7 +63,7 @@ class Bizzio_Sync_Gencloud {
 		$this->load_dependencies();
 		$this->set_locale();
 		$this->define_admin_hooks();
-		$this->define_public_hooks();
+		
 
 	}
 
@@ -125,7 +125,7 @@ class Bizzio_Sync_Gencloud {
 
 		$plugin_i18n = new Bizzio_Sync_Gencloud_i18n();
 
-		$this->loader->add_action( 'plugins_loaded', $plugin_i18n, 'load_plugin_textdomain' );
+		
 
 	}
 

@@ -21,7 +21,7 @@
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       bizzio-sync-gencloud
- * Domain Path:       /languages
+ 
  * WC requires at least: 8.3.0
  * WC tested up to: 10.0.4
  */
