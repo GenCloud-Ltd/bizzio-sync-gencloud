@@ -2,75 +2,232 @@ name: 📊 GitHub Traffic Monitor
 
 on:
   schedule:
-    - cron: "*/30 * * * *" # Пуска се на всеки 30 минути
-  workflow_dispatch:
+    - cron: "0 */4 * * *" # Пуска се на всеки 4 часа (по-оптимално от 30 мин)
+  workflow_dispatch: # Позволява ръчно стартиране
+
+permissions:
+  contents: read
+  actions: read
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 1 # Само последният commit
 
-      - name: Install jq
-        run: sudo apt-get install jq -y
+      - name: Create traffic directory
+        run: mkdir -p .traffic
 
       - name: Fetch GitHub Traffic Data
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
-          mkdir -p .traffic
-          curl -s -H "Authorization: token $GH_TOKEN" https://api.github.com/repos/$REPO/traffic/clones > .traffic/clones.json
-          curl -s -H "Authorization: token $GH_TOKEN" https://api.github.com/repos/$REPO/traffic/views > .traffic/views.json
-          curl -s -H "Authorization: token $GH_TOKEN" https://api.github.com/repos/$REPO/releases > .traffic/releases.json
+          set -e  # Спира при грешка
 
-      - name: Detect Changes and Notify
+          # Функция за безопасно извличане на данни
+          fetch_data() {
+            local endpoint="$1"
+            local output="$2"
+            local retries=3
+            
+            for i in $(seq 1 $retries); do
+              if curl -s -f -w "%{http_code}" \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/$REPO/$endpoint" \
+                -o "$output.tmp"; then
+                mv "$output.tmp" "$output"
+                echo "✅ Успешно извлечени данни от $endpoint"
+                return 0
+              else
+                echo "⚠️ Опит $i/$retries неуспешен за $endpoint"
+                sleep $((i * 2))
+              fi
+            done
+            
+            echo "❌ Неуспешно извличане на данни от $endpoint"
+            echo '{"count": 0, "uniques": 0}' > "$output"
+            return 1
+          }
+
+          # Извличане на данни с retry логика
+          fetch_data "traffic/clones" ".traffic/clones.json"
+          fetch_data "traffic/views" ".traffic/views.json"
+          fetch_data "releases" ".traffic/releases.json"
+
+      - name: Load previous data
+        run: |
+          # Опитай да заредиш предишните данни от предишен run
+          if [ -f ".traffic-old/clones.json" ]; then
+            echo "📁 Намерени предишни данни"
+          else
+            echo "🆕 Първо стартиране - създаване на базови файлове"
+            mkdir -p .traffic-old
+            echo '{"count": 0, "uniques": 0}' > .traffic-old/clones.json
+            echo '{"count": 0, "uniques": 0}' > .traffic-old/views.json
+            echo '[]' > .traffic-old/releases.json
+          fi
+
+      - name: Analyze traffic changes
+        id: analyze
+        run: |
+          set -e
+
+          # Функция за безопасно извличане на стойности с jq
+          safe_extract() {
+            local file="$1"
+            local query="$2"
+            local default="$3"
+            
+            if [ -f "$file" ] && [ -s "$file" ]; then
+              jq -r "$query // $default" "$file" 2>/dev/null || echo "$default"
+            else
+              echo "$default"
+            fi
+          }
+
+          # Текущи стойности
+          cur_clones=$(safe_extract ".traffic/clones.json" ".count" "0")
+          cur_views=$(safe_extract ".traffic/views.json" ".count" "0")
+          cur_unique_clones=$(safe_extract ".traffic/clones.json" ".uniques" "0")
+          cur_unique_views=$(safe_extract ".traffic/views.json" ".uniques" "0")
+          cur_downloads=$(safe_extract ".traffic/releases.json" "[.[].assets[]?.download_count] | add" "0")
+
+          # Предишни стойности
+          old_clones=$(safe_extract ".traffic-old/clones.json" ".count" "0")
+          old_views=$(safe_extract ".traffic-old/views.json" ".count" "0")
+          old_unique_clones=$(safe_extract ".traffic-old/clones.json" ".uniques" "0")
+          old_unique_views=$(safe_extract ".traffic-old/views.json" ".uniques" "0")
+          old_downloads=$(safe_extract ".traffic-old/releases.json" "[.[].assets[]?.download_count] | add" "0")
+
+          # Проверка за промени
+          changed=0
+          msg=""
+
+          # Clones проверка
+          if [ "$cur_clones" -gt "$old_clones" ] || [ "$cur_unique_clones" -gt "$old_unique_clones" ]; then
+            clone_diff=$((cur_clones - old_clones))
+            unique_clone_diff=$((cur_unique_clones - old_unique_clones))
+            msg="${msg}📥 Нови клонирания: $clone_diff (общо: $cur_clones)\\n"
+            msg="${msg}👤 Уникални клонирания: +$unique_clone_diff (общо: $cur_unique_clones)\\n"
+            changed=1
+          fi
+
+          # Views проверка
+          if [ "$cur_views" -gt "$old_views" ] || [ "$cur_unique_views" -gt "$old_unique_views" ]; then
+            view_diff=$((cur_views - old_views))
+            unique_view_diff=$((cur_unique_views - old_unique_views))
+            msg="${msg}👁️ Нови посещения: $view_diff (общо: $cur_views)\\n"
+            msg="${msg}🔍 Уникални посетители: +$unique_view_diff (общо: $cur_unique_views)\\n"
+            changed=1
+          fi
+
+          # Downloads проверка
+          if [ "$cur_downloads" -gt "$old_downloads" ]; then
+            download_diff=$((cur_downloads - old_downloads))
+            msg="${msg}📦 Нови тегления: $download_diff (общо: $cur_downloads)\\n"
+            changed=1
+          fi
+
+          # Добави времева информация
+          if [ "$changed" -eq 1 ]; then
+            timestamp=$(date '+%d.%m.%Y %H:%M UTC')
+            msg="🕐 $timestamp\\n\\n$msg"
+            
+            # Добави линк към хранилището
+            msg="${msg}\\n🔗 Хранилище: https://github.com/${{ github.repository }}"
+          fi
+
+          # Export резултатите
+          echo "changed=$changed" >> $GITHUB_OUTPUT
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$msg" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Лог информация
+          echo "📊 Анализ завършен:"
+          echo "  Clones: $old_clones → $cur_clones"
+          echo "  Views: $old_views → $cur_views"
+          echo "  Downloads: $old_downloads → $cur_downloads"
+          echo "  Changed: $changed"
+
+      - name: Send Telegram notification
+        if: steps.analyze.outputs.changed == '1'
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT }}
         run: |
-          changed=0
-          mkdir -p .traffic-old
+          set -e
 
-          # Load previous if exists
+          # Функция за изпращане с retry
+          send_telegram() {
+            local retries=3
+            local message="$1"
+            
+            for i in $(seq 1 $retries); do
+              if curl -s -f -X POST \
+                "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" \
+                -H "Content-Type: application/json" \
+                -d "{
+                  \"chat_id\": \"$TELEGRAM_CHAT\",
+                  \"text\": \"📊 GitHub Traffic Report\\n${{ github.repository }}\\n\\n$message\",
+                  \"parse_mode\": \"HTML\",
+                  \"disable_web_page_preview\": false
+                }"; then
+                echo "✅ Съобщението е изпратено успешно"
+                return 0
+              else
+                echo "⚠️ Опит $i/$retries неуспешен за изпращане"
+                sleep $((i * 2))
+              fi
+            done
+            
+            echo "❌ Неуспешно изпращане на съобщението"
+            return 1
+          }
+
+          send_telegram "${{ steps.analyze.outputs.message }}"
+
+      - name: Update historical data
+        if: always() # Винаги актуализирай данните
+        run: |
+          # Запази текущите данни като исторически
           cp .traffic/*.json .traffic-old/ 2>/dev/null || true
 
-          # Save current as last
-          cp .traffic/*.json .traffic-old/
+          # Опционално: запази данните като artifact за дебъгване
+          echo "📁 Исторически данни актуализирани"
 
-          # Extract current counts
-          cur_clones=$(jq '.count' .traffic/clones.json)
-          cur_views=$(jq '.count' .traffic/views.json)
-          cur_downloads=$(jq '[.[].assets[]?.download_count] | add' .traffic/releases.json)
+      - name: Upload traffic data artifact
+        if: failure() # Само при грешка за дебъгване
+        uses: actions/upload-artifact@v4
+        with:
+          name: traffic-data-debug
+          path: .traffic/
+          retention-days: 7
 
-          # Extract old counts (or default 0)
-          old_clones=$(jq '.count // 0' .traffic-old/clones.json 2>/dev/null || echo 0)
-          old_views=$(jq '.count // 0' .traffic-old/views.json 2>/dev/null || echo 0)
-          old_downloads=$(jq '[.[].assets[]?.download_count] | add' .traffic-old/releases.json 2>/dev/null || echo 0)
-
-          msg=""
-
-          if [ "$cur_clones" -gt "$old_clones" ]; then
-            msg="${msg}📥 Нов clone: $((cur_clones - old_clones)) (общо: $cur_clones)\n"
-            changed=1
-          fi
-
-          if [ "$cur_views" -gt "$old_views" ]; then
-            msg="${msg}👁️ Нови посещения: $((cur_views - old_views)) (общо: $cur_views)\n"
-            changed=1
-          fi
-
-          if [ "$cur_downloads" -gt "$old_downloads" ]; then
-            msg="${msg}📦 Нови тегления на release: $((cur_downloads - old_downloads)) (общо: $cur_downloads)\n"
-            changed=1
-          fi
-
-          if [ "$changed" -eq 1 ]; then
-            curl -s -X POST https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage \
-              -d chat_id="$TELEGRAM_CHAT" \
-              -d text="📊 GitHub трафик отчет за ${{ github.repository }}:\n$msg"
-          else
-            echo "No new activity detected."
-          fi
+  # Опционален job за weekly summary
+  weekly-summary:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 0 * * 0' # Неделя в полунощ
+    needs: monitor
+    steps:
+      - name: Send weekly summary
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"chat_id\": \"$TELEGRAM_CHAT\",
+              \"text\": \"📅 Седмичен отчет за ${{ github.repository }}\\n\\nМониторингът работи нормално. Проверете GitHub Analytics за подробна статистика.\",
+              \"parse_mode\": \"HTML\"
+            }"
