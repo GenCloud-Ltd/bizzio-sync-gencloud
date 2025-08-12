@@ -46,8 +46,16 @@ For support, please contact us at [web@gencloud.bg](mailto:web@gencloud.bg).
 3.  The category import page.
 
 == Changelog ==
+= 1.0.2 - 2025-08-12 =
+- Changed plugin name from "Bizzio Sync Gencloud" to "Bizzio Sync for WooCommerce".
+- Added direct access check to PHP files in the admin partials.
+- Improved code formatting for consistency across files.
 
-= 1.0.0 - 2024-07-29 =
+= 1.0.1 - 2025-08-01 =
+* Improve plugin compatibility
+
+
+= 1.0.0 - 2025-07-29 =
 * Initial release.
 * Added product and category import functionality.
 * Added batch processing and progress tracking.
