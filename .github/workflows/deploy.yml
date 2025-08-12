@@ -10,7 +10,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
-      PLUGIN_SLUG: bizzio-sync-gencloud
+      PLUGIN_SLUG: bizzio-sync-for-woocommerce
 
     steps:
       - name: Checkout repository
@@ -34,20 +34,20 @@ jobs:
           /home/runner/.composer/vendor/phpcsstandards/phpcsextra
 
       - name: Auto-fix code style issues (continue even if some remain)
-        run: /home/runner/.composer/vendor/bin/phpcbf ./bizzio-sync-gencloud || true
+        run: /home/runner/.composer/vendor/bin/phpcbf ./bizzio-sync-for-woocommerce || true
 
       - name: Show remaining PHPCS issues
         run: |
-          /home/runner/.composer/vendor/bin/phpcs ./bizzio-sync-gencloud || true
+          /home/runner/.composer/vendor/bin/phpcs ./bizzio-sync-for-woocommerce || true
 
       # - name: Run WordPress Coding Standards
       #   run: |
-      #     ~/.composer/vendor/bin/phpcs --standard=WordPress ./bizzio-sync-gencloud
+      #     ~/.composer/vendor/bin/phpcs --standard=WordPress ./bizzio-sync-for-woocommerce
 
       - name: Build plugin ZIP
         run: |
           mkdir -p build
-          cd bizzio-sync-gencloud
+          cd bizzio-sync-for-woocommerce
           zip -r ../build/bizzio-sync-for-woocommerce.zip * .[^.]* -x "*.git*" "*.DS_Store" "node_modules/*"
           cd ..
 
