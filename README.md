@@ -1,6 +1,6 @@
-# Bizzio Sync Gencloud
+# Bizzio Sync for WooCommerce
 
-**Plugin Name:** Bizzio Sync Gencloud
+**Plugin Name:** Bizzio Sync for WooCommerce
 
 **Description:** This WordPress plugin facilitates the synchronization of product and category data from Bizzio ERP (gencloud.bg) to WooCommerce.
 

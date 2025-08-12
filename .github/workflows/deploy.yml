@@ -48,7 +48,7 @@ jobs:
         run: |
           mkdir -p build
           cd bizzio-sync-gencloud
-          zip -r ../build/bizzio-sync-gencloud.zip * .[^.]* -x "*.git*" "*.DS_Store" "node_modules/*"
+          zip -r ../build/bizzio-sync-for-woocommerce.zip * .[^.]* -x "*.git*" "*.DS_Store" "node_modules/*"
           cd ..
 
       - name: Upload ZIP artifact (CI)
@@ -61,7 +61,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: build/bizzio-sync-gencloud.zip
+          files: build/bizzio-sync-for-woocommerce.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
