@@ -222,15 +222,30 @@ class Bizzio_Sync_Gencloud_Admin
 					'helper' => $field['helper'],
 				)
 			);
-			register_setting($this->plugin_name, $field['uid'], array('sanitize_callback' => array($this, 'sanitize_setting')));
+
+			$sanitize_callback = array($this, 'sanitize_setting');
+			if (isset($field['type']) && 'password' === $field['type']) {
+				$sanitize_callback = array($this, 'sanitize_password');
+			}
+			register_setting($this->plugin_name, $field['uid'], array('sanitize_callback' => $sanitize_callback));
 		}
 	}
 
 	public function field_callback($arguments)
 	{
-		echo '<input id="' . esc_attr($arguments['uid']) . '" name="' . esc_attr($arguments['uid']) . '" type="' . esc_attr($arguments['type']) . '" placeholder="' . esc_attr($arguments['placeholder']) . '" value="' . esc_attr(get_option($arguments['uid'])) . '" />';
+		$uid         = esc_attr($arguments['uid']);
+		$type        = esc_attr(isset($arguments['type']) ? $arguments['type'] : 'text');
+		$placeholder = esc_attr($arguments['placeholder']);
+
+		if ('password' === $type) {
+			echo "<input id='{$uid}' name='{$uid}' type='password' placeholder='{$placeholder}' value='' autocomplete='new-password' />";
+		} else {
+			$value = esc_attr(get_option($arguments['uid']));
+			echo "<input id='{$uid}' name='{$uid}' type='{$type}' placeholder='{$placeholder}' value='{$value}' />";
+		}
+
 		if (! empty($arguments['helper'])) {
-			echo '<span class="helper">' . esc_html($arguments['helper']) . '</span>';
+			echo '<p class="description">' . esc_html($arguments['helper']) . '</p>';
 		}
 	}
 
@@ -247,10 +262,25 @@ class Bizzio_Sync_Gencloud_Admin
 	}
 
 	/**
+	 * Sanitize a password field from user input.
+	 *
+	 * @since 1.0.2
+	 * @param string $input The input string.
+	 * @return string The sanitized string.
+	 */
+	public function sanitize_password($input)
+	{
+		return trim($input);
+	}
+
+	/**
 	 * Handle AJAX request for importing products
 	 */
 	public function import_products_callback()
 	{
+		if (! current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => 'You do not have permission to perform this action.'), 403);
+		}
 		check_ajax_referer('bizzio_import_products_nonce', 'security');
 
 		$api_database = get_option('bizzio_api_database');
@@ -366,6 +396,10 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function process_product_batch_callback()
 	{
+		if (! current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => 'You do not have permission to perform this action.'), 403);
+		}
+
 		check_ajax_referer('bizzio_import_products_nonce', 'security');
 
 		$articles_to_import = get_option('bizzio_sync_gencloud_articles_to_import');
@@ -489,6 +523,9 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function get_import_progress_callback()
 	{
+		if (! current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => 'You do not have permission to perform this action.'), 403);
+		}
 		check_ajax_referer('bizzio_import_products_nonce', 'security'); // Using the same nonce for simplicity
 
 		$current_progress = get_option('bizzio_sync_gencloud_import_progress', 0);
@@ -511,6 +548,9 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function test_connection_callback()
 	{
+		if (! current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => 'You do not have permission to perform this action.'), 403);
+		}
 		check_ajax_referer('bizzio_test_connection_nonce', 'security');
 
 		$api_database = get_option('bizzio_api_database');
@@ -614,6 +654,9 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function import_categories_callback()
 	{
+		if (! current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => 'You do not have permission to perform this action.'), 403);
+		}
 		check_ajax_referer('bizzio_import_categories_nonce', 'security');
 
 		$api_database = get_option('bizzio_api_database');
@@ -689,6 +732,9 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function process_category_batch_callback()
 	{
+		if (! current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => 'You do not have permission to perform this action.'), 403);
+		}
 		check_ajax_referer('bizzio_import_categories_nonce', 'security');
 
 		$categories_to_import = get_option('bizzio_sync_gencloud_categories_to_import');
@@ -792,6 +838,9 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function get_category_import_progress_callback()
 	{
+		if (! current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => 'You do not have permission to perform this action.'), 403);
+		}
 		check_ajax_referer('bizzio_import_categories_nonce', 'security');
 
 		$current_progress = get_option('bizzio_sync_gencloud_category_import_progress', 0);
