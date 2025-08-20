@@ -10,8 +10,8 @@
  */
 
 // If uninstall not called from WordPress, then exit.
-if (! defined('WP_UNINSTALL_PLUGIN')) {
-    exit;
+if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+	exit;
 }
 
 // Delete plugin options from the options table.
@@ -34,34 +34,21 @@ $options = array(
     'bizzio_sync_gencloud_category_import_status',
 );
 
-foreach ($options as $option_name) {
-    delete_option($option_name);
+foreach ( $options as $option_name ) {
+    delete_option( $option_name );
 }
 
-// Delete the Bizzio logs/xml directory.
+// Delete the Bizzio logs/xml directory using WP_Filesystem.
+global $wp_filesystem;
+
+if ( is_null( $wp_filesystem ) ) {
+    require_once ABSPATH . '/wp-admin/includes/file.php';
+    WP_Filesystem();
+}
+
 $upload_dir = wp_upload_dir();
 $bizzio_dir = $upload_dir['basedir'] . '/bizzio';
 
-if (is_dir($bizzio_dir)) {
-    /**
-     * Recursively delete a directory and its contents.
-     *
-     * @param string $dir The directory path to delete.
-     */
-    function bizzio_sync_gencloud_recursive_delete($dir)
-    {
-        if (! is_dir($dir)) {
-            return;
-        }
-
-        $files = array_diff(scandir($dir), array('.', '..'));
-
-        foreach ($files as $file) {
-            (is_dir("$dir/$file")) ? bizzio_sync_gencloud_recursive_delete("$dir/$file") : unlink("$dir/$file");
-        }
-
-        rmdir($dir);
-    }
-
-    bizzio_sync_gencloud_recursive_delete($bizzio_dir);
+if ( $wp_filesystem->is_dir( $bizzio_dir ) ) {
+    $wp_filesystem->delete( $bizzio_dir, true );
 }

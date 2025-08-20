@@ -238,14 +238,26 @@ class Bizzio_Sync_Gencloud_Admin
 		$placeholder = esc_attr($arguments['placeholder']);
 
 		if ('password' === $type) {
-			echo "<input id='{$uid}' name='{$uid}' type='password' placeholder='{$placeholder}' value='' autocomplete='new-password' />";
+			printf(
+				'<input id="%s" name="%s" type="password" placeholder="%s" value="" autocomplete="new-password" />',
+				$uid,
+				$uid,
+				$placeholder
+			);
 		} else {
 			$value = esc_attr(get_option($arguments['uid']));
-			echo "<input id='{$uid}' name='{$uid}' type='{$type}' placeholder='{$placeholder}' value='{$value}' />";
+			printf(
+				'<input id="%s" name="%s" type="%s" placeholder="%s" value="%s" />',
+				$uid,
+				$uid,
+				$type,
+				$placeholder,
+				$value
+			);
 		}
 
 		if (! empty($arguments['helper'])) {
-			echo '<p class="description">' . esc_html($arguments['helper']) . '</p>';
+			printf('<p class="description">%s</p>', esc_html($arguments['helper']));
 		}
 	}
 
