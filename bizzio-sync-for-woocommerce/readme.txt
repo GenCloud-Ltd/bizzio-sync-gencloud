@@ -3,7 +3,7 @@ Contributors: gencloud
 Tags: woocommerce, bizzio, erp, sync, import
 Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -12,13 +12,25 @@ Bizzio Sync for WooCommerce allows you to easily import products and categories 
 
 == Description ==
 
-This plugin provides a seamless integration between your Bizzio ERP and WooCommerce. It allows you to:
+Bizzio Sync for WooCommerce is a powerful integration plugin that connects your WooCommerce store to the Bizzio ERP system, enabling seamless synchronization of your product catalog, categories, and attributes — all with just a few clicks.
 
 *   **Import Products:** Sync your products from Bizzio to WooCommerce, including product name, description, price, and stock quantity.
 *   **Import Categories:** Sync your product categories from Bizzio to WooCommerce, maintaining the category hierarchy.
 *   **Batch Processing:** The import process is handled in batches to prevent server timeouts and ensure a smooth import, even with a large number of products and categories.
 *   **Progress Tracking:** The plugin provides a real-time progress bar to monitor the import process.
 *   **Connection Testing:** You can easily test the connection to your Bizzio ERP to ensure that the API credentials are correct.
+
+Note: This plugin requires valid API credentials provided by GenCloud Ltd. and access to a working Bizzio ERP instance.
+
+== External Services ==
+
+This plugin communicates with the Bizzio ERP system (by GenCloud Ltd.) to fetch product and category data into WooCommerce.
+
+It use only the provided authentication credentials (Database, Username, Password, and Site ID) when the store administrator initiates synchronization.
+
+No visitor or site data is shared. 
+
+The Bizzio ERP service is operated by GenCloud Ltd. — https://www.gencloud.bg
 
 == Installation ==
 
@@ -33,7 +45,7 @@ This plugin provides a seamless integration between your Bizzio ERP and WooComme
 
 = What are the requirements for this plugin? =
 
-You need to have a Bizzio ERP account and WooCommerce installed on your WordPress site.
+You need to have a Bizzio ERP API account and WooCommerce installed on your WordPress site.
 
 = Where can I get support? =
 
@@ -46,6 +58,9 @@ For support, please contact us at [web@gencloud.bg](mailto:web@gencloud.bg).
 3.  The category import page.
 
 == Changelog ==
+= 1.0.3 - 2025-08-20 =
+* Minor update to readme.txt – clarified required plugins and description.
+
 = 1.0.2 - 2025-08-12 =
 - Changed plugin name from "Bizzio Sync Gencloud" to "Bizzio Sync for WooCommerce".
 - Added direct access check to PHP files in the admin partials.
