@@ -237,8 +237,24 @@ class Bizzio_Sync_Gencloud_Admin
 		$type        = esc_attr(isset($arguments['type']) ? $arguments['type'] : 'text');
 		$placeholder = esc_attr($arguments['placeholder']);
 
+		$allowed_html = array(
+			'input' => array(
+				'id'           => array(),
+				'name'         => array(),
+				'type'         => array(),
+				'placeholder'  => array(),
+				'value'        => array(),
+				'autocomplete' => array(),
+			),
+			'p'     => array(
+				'class' => array(),
+			),
+		);
+
+		$output = '';
+
 		if ('password' === $type) {
-			printf(
+			$output = sprintf(
 				'<input id="%s" name="%s" type="password" placeholder="%s" value="" autocomplete="new-password" />',
 				$uid,
 				$uid,
@@ -246,7 +262,7 @@ class Bizzio_Sync_Gencloud_Admin
 			);
 		} else {
 			$value = esc_attr(get_option($arguments['uid']));
-			printf(
+			$output = sprintf(
 				'<input id="%s" name="%s" type="%s" placeholder="%s" value="%s" />',
 				$uid,
 				$uid,
@@ -257,8 +273,10 @@ class Bizzio_Sync_Gencloud_Admin
 		}
 
 		if (! empty($arguments['helper'])) {
-			printf('<p class="description">%s</p>', esc_html($arguments['helper']));
+			$output .= sprintf('<p class="description">%s</p>', esc_html($arguments['helper']));
 		}
+
+		echo wp_kses($output, $allowed_html);
 	}
 
 	/**
