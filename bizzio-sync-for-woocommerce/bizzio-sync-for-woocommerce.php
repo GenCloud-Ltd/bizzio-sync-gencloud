@@ -15,8 +15,8 @@
  * @wordpress-plugin
  * Plugin Name:       Bizzio Sync for WooCommerce
  * Description:       Sync products and categories from Bizzio ERP to WooCommerce store.
- * Version:           1.0.3
- * Author:            GenCloud Inc.
+ * Version:           1.0.4
+ * Author:            gencloud
  * Author URI:        https://incloud.bg/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt

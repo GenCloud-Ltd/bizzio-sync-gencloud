@@ -40,16 +40,13 @@ jobs:
         run: |
           /home/runner/.composer/vendor/bin/phpcs ./bizzio-sync-for-woocommerce || true
 
-      # - name: Run WordPress Coding Standards
-      #   run: |
-      #     ~/.composer/vendor/bin/phpcs --standard=WordPress ./bizzio-sync-for-woocommerce
-
       - name: Build plugin ZIP
         run: |
           mkdir -p build
           cd bizzio-sync-for-woocommerce
-          zip -r ../build/bizzio-sync-for-woocommerce.zip * .[^.]* -x "*.git*" "*.DS_Store" "node_modules/*"
+          zip -r ../build/${{ env.PLUGIN_SLUG }}.zip * .[^.]* -x "*.git*" "*.DS_Store" "node_modules/*" "*.md" "*.txt"
           cd ..
+          ls -la build/ # Debug: показва какво има в build директорията
 
       - name: Upload ZIP artifact (CI)
         uses: actions/upload-artifact@v4
@@ -57,11 +54,20 @@ jobs:
           name: ${{ env.PLUGIN_SLUG }}
           path: build/${{ env.PLUGIN_SLUG }}.zip
 
+      # Поправен upload към GitHub Release
       - name: Upload ZIP to GitHub Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
-          files: build/bizzio-sync-for-woocommerce.zip
+          files: build/${{ env.PLUGIN_SLUG }}.zip
+          name: Release ${{ github.ref_name }}
+          body: |
+            WordPress Plugin Release ${{ github.ref_name }}
+
+            ## Download
+            - [bizzio-sync-for-woocommerce.zip](bizzio-sync-for-woocommerce.zip) - Plugin ZIP file
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
