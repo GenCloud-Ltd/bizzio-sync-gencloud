@@ -308,8 +308,8 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function import_products_callback()
 	{
-		if (! current_user_can('manage_options')) {
-			wp_send_json_error(array('message' => __('You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce')), 403);
+		if (!current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => esc_html__('You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce')), 403);
 		}
 		check_ajax_referer('bizzio_import_products_nonce', 'security');
 
@@ -343,14 +343,15 @@ class Bizzio_Sync_Gencloud_Admin
 		$response = $this->_make_soap_request($soap_action, $request_body);
 
 		if (is_wp_error($response)) {
-			wp_send_json_error(array('message' => sprintf(__('Error fetching products: %s', 'bizzio-sync-for-woocommerce'), $response->get_error_message())));
+			/* translators: %s: error message */
+			wp_send_json_error(array('message' => sprintf(esc_html__('Error fetching products: %s', 'bizzio-sync-for-woocommerce'), $response->get_error_message())));
 		}
 
 		$body = wp_remote_retrieve_body($response);
 		$xml = simplexml_load_string($body);
 
 		if (false === $xml) {
-			wp_send_json_error(array('message' => __('Failed to parse XML response for products.', 'bizzio-sync-for-woocommerce')));
+			wp_send_json_error(array('message' => esc_html__('Failed to parse XML response for products.', 'bizzio-sync-for-woocommerce')));
 		}
 
 		$responseElement = $this->_process_bizzio_response($xml, 'products');
@@ -415,9 +416,10 @@ class Bizzio_Sync_Gencloud_Admin
 		update_option('bizzio_sync_gencloud_import_status', $total_articles > 0 ? 'in_progress' : 'idle');
 
 		if ($total_articles > 0) {
-			wp_send_json_success(array('message' => sprintf(__('Fetched %d products. Ready to import.', 'bizzio-sync-for-woocommerce'), $total_articles), 'total_articles' => $total_articles));
+			/* translators: %d: number of products */
+			wp_send_json_success(array('message' => sprintf(esc_html__('Fetched %d products. Ready to import.', 'bizzio-sync-for-woocommerce'), $total_articles), 'total_articles' => $total_articles));
 		} else {
-			wp_send_json_error(array('message' => __('No products found to import.', 'bizzio-sync-for-woocommerce')));
+			wp_send_json_error(array('message' => esc_html__('No products found to import.', 'bizzio-sync-for-woocommerce')));
 		}
 	}
 
@@ -426,8 +428,8 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function process_product_batch_callback()
 	{
-		if (! current_user_can('manage_options')) {
-			wp_send_json_error(array('message' => __('You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce')), 403);
+		if (!current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => esc_html__('You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce')), 403);
 		}
 
 		check_ajax_referer('bizzio_import_products_nonce', 'security');
@@ -444,7 +446,7 @@ class Bizzio_Sync_Gencloud_Admin
 		if (empty($articles_to_import) || $current_progress >= $total_articles) {
 			update_option('bizzio_sync_gencloud_import_status', 'completed');
 			wp_send_json_success(array(
-				'message' => __('Product import complete.', 'bizzio-sync-for-woocommerce'),
+				'message' => esc_html__('Product import complete.', 'bizzio-sync-for-woocommerce'),
 				'status' => 'completed',
 				'imported' => $imported_count,
 				'failed' => $failed_count,
@@ -539,7 +541,8 @@ class Bizzio_Sync_Gencloud_Admin
 		update_option('bizzio_sync_gencloud_import_status', $status);
 
 		wp_send_json_success(array(
-			'message' => sprintf(__('Processed %d products. Total imported: %d, Total failed: %d', 'bizzio-sync-for-woocommerce'), $articles_processed_in_batch, $imported_count, $failed_count),
+			/* translators: 1: processed count, 2: imported count, 3: failed count */
+			'message' => sprintf(esc_html__('Processed %1$d products. Total imported: %2$d, Total failed: %3$d', 'bizzio-sync-for-woocommerce'), $articles_processed_in_batch, $imported_count, $failed_count),
 			'status' => $status,
 			'progress' => $current_progress,
 			'total_articles' => $total_articles,
@@ -578,8 +581,8 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function test_connection_callback()
 	{
-		if (! current_user_can('manage_options')) {
-			wp_send_json_error(array('message' => __('You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce')), 403);
+		if (!current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => esc_html__('You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce')), 403);
 		}
 		check_ajax_referer('bizzio_test_connection_nonce', 'security');
 
@@ -608,14 +611,15 @@ class Bizzio_Sync_Gencloud_Admin
 		$response = $this->_make_soap_request($soap_action, $request_body);
 
 		if (is_wp_error($response)) {
-			wp_send_json_error(array('message' => sprintf(__('Connection test failed: %s', 'bizzio-sync-for-woocommerce'), $response->get_error_message())));
+			/* translators: %s: error message */
+			wp_send_json_error(array('message' => sprintf(esc_html__('Connection test failed: %s', 'bizzio-sync-for-woocommerce'), $response->get_error_message())));
 		}
 
 		$body = wp_remote_retrieve_body($response);
 		$xml = simplexml_load_string($body);
 
 		if (false === $xml) {
-			wp_send_json_error(array('message' => __('Connection test failed: Failed to parse XML response.', 'bizzio-sync-for-woocommerce')));
+			wp_send_json_error(array('message' => esc_html__('Connection test failed: Failed to parse XML response.', 'bizzio-sync-for-woocommerce')));
 		}
 
 		$responseElement = $this->_process_bizzio_response($xml, 'connection_test');
@@ -625,7 +629,7 @@ class Bizzio_Sync_Gencloud_Admin
 		}
 
 
-		wp_send_json_success(array('message' => __('Connection successful!', 'bizzio-sync-for-woocommerce')));
+		wp_send_json_success(array('message' => esc_html__('Connection successful!', 'bizzio-sync-for-woocommerce')));
 	}
 
 	/**
@@ -638,7 +642,8 @@ class Bizzio_Sync_Gencloud_Admin
 	private function _process_bizzio_response($xml, $context)
 	{
 		if (is_wp_error($xml)) {
-			return new WP_Error('bizzio_api_error', sprintf(__('Error fetching %s: %s', 'bizzio-sync-for-woocommerce'), $context, $xml->get_error_message()));
+			/* translators: 1: context, 2: error message */
+			return new WP_Error('bizzio_api_error', sprintf(esc_html__('Error fetching %1$s: %2$s', 'bizzio-sync-for-woocommerce'), $context, $xml->get_error_message()));
 		}
 
 		$namespaces = $xml->getNamespaces(true);
@@ -656,7 +661,8 @@ class Bizzio_Sync_Gencloud_Admin
 		$responseElement = $response_container->{$response_element_name};
 
 		if (! $responseElement) {
-			return new WP_Error('bizzio_invalid_response', sprintf(__('Invalid response element for %s.', 'bizzio-sync-for-woocommerce'), $context));
+			/* translators: %s: context */
+			return new WP_Error('bizzio_invalid_response', sprintf(esc_html__('Invalid response element for %s.', 'bizzio-sync-for-woocommerce'), $context));
 		}
 
 		$error_code = (string) $responseElement->ErrorCode;
@@ -666,8 +672,9 @@ class Bizzio_Sync_Gencloud_Admin
 		if ('0' !== $error_code || 'Success' !== $error_type) {
 			return new WP_Error(
 				'bizzio_api_error',
+				/* translators: 1: context, 2: error message, 3: error code */
 				sprintf(
-					__('API Error fetching %s: %s (Code: %s). <br> Please contact Bizzio administrator for assistance.', 'bizzio-sync-for-woocommerce'),
+					esc_html__('API Error fetching %1$s: %2$s (Code: %3$s). <br> Please contact Bizzio administrator for assistance.', 'bizzio-sync-for-woocommerce'),
 					$context,
 					$error_message,
 					$error_code
@@ -684,8 +691,8 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function import_categories_callback()
 	{
-		if (! current_user_can('manage_options')) {
-			wp_send_json_error(array('message' => __('You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce')), 403);
+		if (!current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => esc_html__('You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce')), 403);
 		}
 		check_ajax_referer('bizzio_import_categories_nonce', 'security');
 
@@ -751,9 +758,10 @@ class Bizzio_Sync_Gencloud_Admin
 		update_option('bizzio_sync_gencloud_category_import_status', $total_categories > 0 ? 'in_progress' : 'idle');
 
 		if ($total_categories > 0) {
-			wp_send_json_success(array('message' => sprintf(__('Fetched %d categories. Ready to import.', 'bizzio-sync-for-woocommerce'), $total_categories), 'total_categories' => $total_categories));
+			/* translators: %d: number of categories */
+			wp_send_json_success(array('message' => sprintf(esc_html__('Fetched %d categories. Ready to import.', 'bizzio-sync-for-woocommerce'), $total_categories), 'total_categories' => $total_categories));
 		} else {
-			wp_send_json_error(array('message' => __('No categories found to import.', 'bizzio-sync-for-woocommerce')));
+			wp_send_json_error(array('message' => esc_html__('No categories found to import.', 'bizzio-sync-for-woocommerce')));
 		}
 	}
 
@@ -762,8 +770,8 @@ class Bizzio_Sync_Gencloud_Admin
 	 */
 	public function process_category_batch_callback()
 	{
-		if (! current_user_can('manage_options')) {
-			wp_send_json_error(array('message' => __('You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce')), 403);
+		if (!current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => esc_html__('You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce')), 403);
 		}
 		check_ajax_referer('bizzio_import_categories_nonce', 'security');
 
@@ -779,7 +787,7 @@ class Bizzio_Sync_Gencloud_Admin
 		if (empty($categories_to_import) || $current_progress >= $total_categories) {
 			update_option('bizzio_sync_gencloud_category_import_status', 'completed');
 			wp_send_json_success(array(
-				'message' => __('Category import complete.', 'bizzio-sync-for-woocommerce'),
+				'message' => esc_html__('Category import complete.', 'bizzio-sync-for-woocommerce'),
 				'status' => 'completed',
 				'imported' => $imported_count,
 				'failed' => $failed_count,
@@ -854,7 +862,8 @@ class Bizzio_Sync_Gencloud_Admin
 		update_option('bizzio_sync_gencloud_category_import_status', $status);
 
 		wp_send_json_success(array(
-			'message' => sprintf(__('Processed %d categories. Total imported: %d, Total failed: %d', 'bizzio-sync-for-woocommerce'), $categories_processed_in_batch, $imported_count, $failed_count),
+			/* translators: 1: processed count, 2: imported count, 3: failed count */
+			'message' => sprintf(esc_html__('Processed %1$d categories. Total imported: %2$d, Total failed: %3$d', 'bizzio-sync-for-woocommerce'), $categories_processed_in_batch, $imported_count, $failed_count),
 			'status' => $status,
 			'progress' => $current_progress,
 			'total_categories' => $total_categories,

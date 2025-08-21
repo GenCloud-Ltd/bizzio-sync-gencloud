@@ -125,8 +125,6 @@ class Bizzio_Sync_Gencloud {
 
 		$plugin_i18n = new Bizzio_Sync_Gencloud_i18n();
 
-		$this->loader->add_action( 'plugins_loaded', $plugin_i18n, 'load_plugin_textdomain' );
-
 	}
 
 	/**
