@@ -22,9 +22,9 @@ if ( ! defined( 'WPINC' ) ) {
 
 	<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-	<h2>Import Products from Bizzio ERP</h2>
-	<p>Click the button below to fetch and import products from the Bizzio ERP / gencloud.bg API.</p>
-	<button id="bizzio-import-products" class="button button-primary">Import Products</button>
+	<h2><?php esc_html_e('Import Products from Bizzio ERP', 'bizzio-sync-for-woocommerce'); ?></h2>
+	<p><?php esc_html_e('Click the button below to fetch and import products from the Bizzio ERP / gencloud.bg API.', 'bizzio-sync-for-woocommerce'); ?></p>
+	<button id="bizzio-import-products" class="button button-primary"><?php esc_html_e('Import Products', 'bizzio-sync-for-woocommerce'); ?></button>
 	<div id="bizzio-product-import-status" style="margin-top: 10px;"></div>
 
 	<div class="bizzio-progress-container" style="width: 100%; background-color: #f3f3f3; border-radius: 5px; margin-top: 20px;">

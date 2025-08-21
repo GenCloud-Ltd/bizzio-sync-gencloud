@@ -343,7 +343,7 @@ class Bizzio_Sync_Gencloud_Admin
 		$response = $this->_make_soap_request($soap_action, $request_body);
 
 		if (is_wp_error($response)) {
-			wp_send_json_error(array('message' => __('Error fetching products: ', 'bizzio-sync-for-woocommerce') . $response->get_error_message()));
+			wp_send_json_error(array('message' => sprintf(__('Error fetching products: %s', 'bizzio-sync-for-woocommerce'), $response->get_error_message())));
 		}
 
 		$body = wp_remote_retrieve_body($response);
@@ -608,7 +608,7 @@ class Bizzio_Sync_Gencloud_Admin
 		$response = $this->_make_soap_request($soap_action, $request_body);
 
 		if (is_wp_error($response)) {
-			wp_send_json_error(array('message' => __('Connection test failed: ', 'bizzio-sync-for-woocommerce') . $response->get_error_message()));
+			wp_send_json_error(array('message' => sprintf(__('Connection test failed: %s', 'bizzio-sync-for-woocommerce'), $response->get_error_message())));
 		}
 
 		$body = wp_remote_retrieve_body($response);
@@ -999,7 +999,7 @@ class Bizzio_Sync_Gencloud_Admin
 		}
 
 		// do the validation and storage stuff
-		$attach_id = media_handle_sideload($file_array, $product_id);
+		$attach_id = media_handle_sideload($file_array, $product_.phpid);
 
 		if (! is_wp_error($attach_id)) {
 			set_post_thumbnail($product_id, $attach_id);
