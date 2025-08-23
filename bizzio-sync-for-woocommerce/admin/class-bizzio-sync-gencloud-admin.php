@@ -672,8 +672,8 @@ class Bizzio_Sync_Gencloud_Admin
 		if ('0' !== $error_code || 'Success' !== $error_type) {
 			return new WP_Error(
 				'bizzio_api_error',
-				/* translators: 1: context, 2: error message, 3: error code */
 				sprintf(
+					/* translators: 1: context, 2: error message, 3: error code */
 					esc_html__('API Error fetching %1$s: %2$s (Code: %3$s). <br> Please contact Bizzio administrator for assistance.', 'bizzio-sync-for-woocommerce'),
 					$context,
 					$error_message,
@@ -1008,7 +1008,7 @@ class Bizzio_Sync_Gencloud_Admin
 		}
 
 		// do the validation and storage stuff
-		$attach_id = media_handle_sideload($file_array, $product_.phpid);
+		$attach_id = media_handle_sideload($file_array, $product_ . phpid);
 
 		if (! is_wp_error($attach_id)) {
 			set_post_thumbnail($product_id, $attach_id);
