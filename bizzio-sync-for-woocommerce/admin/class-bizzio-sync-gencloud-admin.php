@@ -254,11 +254,13 @@ class Bizzio_Sync_Gencloud_Admin
 		$output = '';
 
 		if ('password' === $type) {
+			$value = get_option($arguments['uid']);
+			$placeholder_text = !empty($value) ? '********' : $placeholder;
 			$output = sprintf(
 				'<input id="%s" name="%s" type="password" placeholder="%s" value="" autocomplete="new-password" />',
 				$uid,
 				$uid,
-				$placeholder
+				$placeholder_text
 			);
 		} else {
 			$value = esc_attr(get_option($arguments['uid']));

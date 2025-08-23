@@ -37,7 +37,7 @@ if (! defined('WPINC')) {
  * Start at 1.0.0 and use SemVer - https://semver.org
  * @since             1.0.0
  */
-define('BIZZIO_SYNC_GENCLOUD_VERSION', '1.0.3');
+define('BIZZIO_SYNC_GENCLOUD_VERSION', '1.0.4');
 
 /**
  * Define BIZZIO_SYNC_GENCLOUD_DEBUG_LOG to true in wp-config.php to enable full debug logging.
@@ -47,28 +47,7 @@ if (! defined('BIZZIO_SYNC_GENCLOUD_DEBUG_LOG')) {
 	define('BIZZIO_SYNC_GENCLOUD_DEBUG_LOG', false);
 }
 
-/**
- * The code that runs during plugin activation.
- * This action is documented in includes/class-bizzio-sync-gencloud-activator.php
- */
-function activate_bizzio_sync_gencloud()
-{
-	require_once plugin_dir_path(__FILE__) . 'includes/class-bizzio-sync-gencloud-activator.php';
-	Bizzio_Sync_Gencloud_Activator::activate();
-}
 
-/**
- * The code that runs during plugin deactivation.
- * This action is documented in includes/class-bizzio-sync-gencloud-deactivator.php
- */
-function deactivate_bizzio_sync_gencloud()
-{
-	require_once plugin_dir_path(__FILE__) . 'includes/class-bizzio-sync-gencloud-deactivator.php';
-	Bizzio_Sync_Gencloud_Deactivator::deactivate();
-}
-
-register_activation_hook(__FILE__, 'activate_bizzio_sync_gencloud');
-register_deactivation_hook(__FILE__, 'deactivate_bizzio_sync_gencloud');
 
 /**
  * The core plugin class that is used to define internationalization,
