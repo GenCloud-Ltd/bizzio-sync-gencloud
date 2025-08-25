@@ -16,7 +16,7 @@
  * Plugin Name:       Bizzio Sync for WooCommerce
  * Description:       Sync products and categories from Bizzio ERP to WooCommerce store.
  * Version:           1.0.3
- * Author:            GenCloud Inc.
+ * Author:            gencloud
  * Author URI:        https://incloud.bg/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
@@ -47,28 +47,7 @@ if (! defined('BIZZIO_SYNC_GENCLOUD_DEBUG_LOG')) {
 	define('BIZZIO_SYNC_GENCLOUD_DEBUG_LOG', false);
 }
 
-/**
- * The code that runs during plugin activation.
- * This action is documented in includes/class-bizzio-sync-gencloud-activator.php
- */
-function activate_bizzio_sync_gencloud()
-{
-	require_once plugin_dir_path(__FILE__) . 'includes/class-bizzio-sync-gencloud-activator.php';
-	Bizzio_Sync_Gencloud_Activator::activate();
-}
 
-/**
- * The code that runs during plugin deactivation.
- * This action is documented in includes/class-bizzio-sync-gencloud-deactivator.php
- */
-function deactivate_bizzio_sync_gencloud()
-{
-	require_once plugin_dir_path(__FILE__) . 'includes/class-bizzio-sync-gencloud-deactivator.php';
-	Bizzio_Sync_Gencloud_Deactivator::deactivate();
-}
-
-register_activation_hook(__FILE__, 'activate_bizzio_sync_gencloud');
-register_deactivation_hook(__FILE__, 'deactivate_bizzio_sync_gencloud');
 
 /**
  * The core plugin class that is used to define internationalization,

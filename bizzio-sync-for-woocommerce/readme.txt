@@ -58,8 +58,9 @@ For support, please contact us at [web@gencloud.bg](mailto:web@gencloud.bg).
 3.  The category import page.
 
 == Changelog ==
-= 1.0.3 - 2025-08-20 =
-* Minor update to readme.txt – clarified required plugins and description.
+= 1.0.3 - 2025-08-25 =
+* Minor update to readme.txt – clarified required plugins and docs 3rd Party / external service.
+* Еnhance internationalization support
 
 = 1.0.2 - 2025-08-12 =
 - Changed plugin name from "Bizzio Sync Gencloud" to "Bizzio Sync for WooCommerce".

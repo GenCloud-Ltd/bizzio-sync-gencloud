@@ -27,14 +27,14 @@ if (! defined('WPINC')) {
 		<?php
 		settings_fields($this->plugin_name);
 		do_settings_sections($this->plugin_name);
-		submit_button('Save Settings');
+		submit_button(__('Save Settings', 'bizzio-sync-for-woocommerce'));
 		?>
 
 	</form>
 
-	<h2>Test Connection</h2>
-	<p>Click the button below to test the connection to the Bizzio ERP / gencloud.bg API.</p>
-	<button id="bizzio-test-connection" class="button button-primary">Test Connection</button>
+	<h2><?php esc_html_e('Test Connection', 'bizzio-sync-for-woocommerce'); ?></h2>
+	<p><?php esc_html_e('Click the button below to test the connection to the Bizzio ERP / gencloud.bg API.', 'bizzio-sync-for-woocommerce'); ?></p>
+	<button id="bizzio-test-connection" class="button button-primary"><?php esc_html_e('Test Connection', 'bizzio-sync-for-woocommerce'); ?></button>
 	<div id="bizzio-test-connection-result" style="margin-top: 10px;"></div>
 
 </div>
