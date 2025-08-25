@@ -11,7 +11,7 @@
  * @since      1.0.0
  * @package    Bizzio_Sync_Gencloud
  * @subpackage Bizzio_Sync_Gencloud/includes
- * @author     Gencloud <web@gencloud.bg>
+ * @author     gencloud <web@gencloud.bg>
  */
 class Bizzio_Sync_Gencloud
 {
@@ -97,7 +97,7 @@ class Bizzio_Sync_Gencloud
 		 */
 		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/class-bizzio-sync-gencloud-admin.php';
 
-		
+
 
 		$this->loader = new Bizzio_Sync_Gencloud_Loader();
 	}
@@ -130,7 +130,7 @@ class Bizzio_Sync_Gencloud
 		$this->loader->add_action('wp_ajax_bizzio_get_category_import_progress', $plugin_admin, 'get_category_import_progress_callback');
 	}
 
-	
+
 
 	/**
 	 * Run the loader to execute all of the hooks with WordPress.

@@ -2,6 +2,12 @@ name: Build and Deploy WordPress Plugin
 
 on:
   workflow_dispatch: # Позволява ръчно стартиране от GitHub UI
+    inputs:
+      branch:
+        description: "Branch to build from"
+        required: false
+        default: "main"
+        type: string
   push:
     tags:
       - "v*" # Стартира се при всеки таг от вида v1.0.0
@@ -15,6 +21,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # При таг - използва commit-а на тага
+          # При manual dispatch - използва избрания branch или input параметъра
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Install PHP and Composer
         uses: shivammathur/setup-php@v2
@@ -43,10 +53,25 @@ jobs:
       - name: Build plugin ZIP
         run: |
           mkdir -p build
-          cd bizzio-sync-for-woocommerce
-          zip -r ../build/${{ env.PLUGIN_SLUG }}.zip * .[^.]* -x "*.git*" "*.DS_Store" "node_modules/*" "*.md" "*.txt"
-          cd ..
-          ls -la build/ # Debug: показва какво има в build директорията
+
+          # Debug: показва от кой branch/commit строим
+          echo "=== Build Information ==="
+          echo "Git Branch: $(git branch --show-current)"
+          echo "Git Commit: $(git rev-parse HEAD)"
+          echo "Git Tag: $(git describe --tags --exact-match 2>/dev/null || echo 'No tag')"
+          echo "========================="
+
+          # Създаваме ZIP с папката bizzio-sync-for-woocommerce и цялото й съдържание
+          zip -r build/${{ env.PLUGIN_SLUG }}.zip bizzio-sync-for-woocommerce/ -x \
+            "bizzio-sync-for-woocommerce/.git*" \
+            "bizzio-sync-for-woocommerce/.DS_Store" \
+            "bizzio-sync-for-woocommerce/node_modules/*"
+
+          # Debug: показва структурата на архива
+          echo "=== ZIP Archive Contents ==="
+          unzip -l build/${{ env.PLUGIN_SLUG }}.zip | head -20
+          echo "=== Build Directory ==="
+          ls -la build/
 
       - name: Upload ZIP artifact (CI)
         uses: actions/upload-artifact@v4

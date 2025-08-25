@@ -17,7 +17,7 @@
  *
  * @package    Bizzio_Sync_Gencloud
  * @subpackage Bizzio_Sync_Gencloud/admin
- * @author     Gencloud <web@gencloud.bg>
+ * @author     gencloud <web@gencloud.bg>
  */
 class Bizzio_Sync_Gencloud_Admin
 {
