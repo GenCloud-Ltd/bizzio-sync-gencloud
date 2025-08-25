@@ -1,5 +1,4 @@
 <?php
-
 /**
  * The plugin bootstrap file
  *
@@ -28,23 +27,25 @@
  */
 
 // If this file is called directly, abort.
-if (! defined('WPINC')) {
-	die;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
+
 
 /**
  * Currently plugin version.
  * Start at 1.0.0 and use SemVer - https://semver.org
+ *
  * @since             1.0.0
  */
-define('BIZZIO_SYNC_GENCLOUD_VERSION', '1.0.3');
+define( 'BIZZIO_SYNC_GENCLOUD_VERSION', '1.0.3' );
 
 /**
  * Define BIZZIO_SYNC_GENCLOUD_DEBUG_LOG to true in wp-config.php to enable full debug logging.
  * For example: define( 'BIZZIO_SYNC_GENCLOUD_DEBUG_LOG', true );
  */
-if (! defined('BIZZIO_SYNC_GENCLOUD_DEBUG_LOG')) {
-	define('BIZZIO_SYNC_GENCLOUD_DEBUG_LOG', false);
+if ( ! defined( 'BIZZIO_SYNC_GENCLOUD_DEBUG_LOG' ) ) {
+	define( 'BIZZIO_SYNC_GENCLOUD_DEBUG_LOG', false );
 }
 
 
@@ -53,7 +54,7 @@ if (! defined('BIZZIO_SYNC_GENCLOUD_DEBUG_LOG')) {
  * The core plugin class that is used to define internationalization,
  * admin-specific hooks, and public-facing site hooks.
  */
-require plugin_dir_path(__FILE__) . 'includes/class-bizzio-sync-gencloud.php';
+require plugin_dir_path( __FILE__ ) . 'includes/class-bizzio-sync-gencloud.php';
 
 /**
  * Begins execution of the plugin.
@@ -64,8 +65,7 @@ require plugin_dir_path(__FILE__) . 'includes/class-bizzio-sync-gencloud.php';
  *
  * @since    1.0.0
  */
-function run_bizzio_sync_gencloud()
-{
+function run_bizzio_sync_gencloud() {
 
 	$plugin = new Bizzio_Sync_Gencloud();
 	$plugin->run();

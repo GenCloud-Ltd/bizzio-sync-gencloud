@@ -2,3 +2,6 @@
 *.log
 *-p
 .vscode
+node_modules
+composer.lock
+vendor

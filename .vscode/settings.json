@@ -1,7 +1,20 @@
 {
+  "php.validate.executablePath": "/usr/bin/php",
+
   "phpcs.enable": true,
-  "phpcs.standard": "WordPress",
-  "phpcs.executablePath": "${workspaceRoot}/vendor/bin/phpcs",
-  "phpcbf.executablePath": "${workspaceRoot}/vendor/bin/phpcbf",
-  "editor.formatOnSave": true
+  "phpcs.standard": "phpcs.xml.dist",
+  "phpcs.executablePath": "${workspaceFolder}/vendor/bin/phpcs",
+
+  "editor.formatOnSave": false,
+  "files.exclude": {
+    "**/vendor": true,
+    "**/node_modules": true
+  },
+
+  // Препоръчително: Intelephense за по-добър PHP интелисенс
+  "intelephense.environment.phpVersion": "8.2",
+  "intelephense.files.exclude": [
+    "**/vendor/**",
+    "**/node_modules/**"
+  ]
 }

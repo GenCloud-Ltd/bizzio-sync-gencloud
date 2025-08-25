@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<ruleset name="Bizzio">
+  <file>bizzio-sync-for-woocommerce</file>
+
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+  <exclude-pattern>*/node_modules/*</exclude-pattern>
+  <exclude-pattern>*/.git/*</exclude-pattern>
+  <exclude-pattern>*/.github/*</exclude-pattern>
+  <exclude-pattern>*/.vscode/*</exclude-pattern>
+  <exclude-pattern>*/assets/*</exclude-pattern>
+
+  <arg value="p"/>
+  <arg value="s"/>
+
+  <rule ref="WordPress-Core"/>
+  <rule ref="WordPress-Extra"/>
+  <rule ref="WordPress-Docs"/>
+
+  <rule ref="PHPCompatibility"/>
+  <config name="testVersion" value="8.1-8.3"/>
+
+  <rule ref="Generic.PHP.ForbiddenFunctions">
+  <properties>
+    <property name="forbiddenFunctions" type="array">
+      <element key="var_dump" value=""/>
+      <element key="print_r" value=""/>
+
+            <!-- Termination -->
+      <element key="die" value=""/>
+      <element key="exit" value=""/>
+
+      <!-- Old MySQL -->
+      <element key="mysql_query" value=""/>
+      <element key="mysql_connect" value=""/>
+      <element key="mysql_pconnect" value=""/>
+      <element key="mysql_select_db" value=""/>
+      <element key="mysql_fetch_array" value=""/>
+      <element key="mysql_fetch_assoc" value=""/>
+
+      <!-- Dangerous execution -->
+      <element key="eval" value=""/>
+      <element key="exec" value=""/>
+      <element key="shell_exec" value=""/>
+      <element key="system" value=""/>
+      <element key="passthru" value=""/>
+      <element key="proc_open" value=""/>
+      <element key="popen" value=""/>
+    </property>
+  </properties>
+</rule>
+
+<rule ref="Squiz.PHP.CommentedOutCode"/>
+
+  <rule ref="WordPress.WP.I18n">
+    <properties>
+      <property name="text_domain" type="array">
+        <element value="bizzio-sync-for-woocommerce"/>
+      </property>
+    </properties>
+  </rule>
+</ruleset>
+
+
+
+
