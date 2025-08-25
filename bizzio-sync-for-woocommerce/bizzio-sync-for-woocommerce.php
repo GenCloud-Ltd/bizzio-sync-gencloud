@@ -15,7 +15,7 @@
  * @wordpress-plugin
  * Plugin Name:       Bizzio Sync for WooCommerce
  * Description:       Sync products and categories from Bizzio ERP to WooCommerce store.
- * Version:           1.0.4
+ * Version:           1.0.3
  * Author:            gencloud
  * Author URI:        https://incloud.bg/
  * License:           GPL-2.0+
@@ -37,7 +37,7 @@ if (! defined('WPINC')) {
  * Start at 1.0.0 and use SemVer - https://semver.org
  * @since             1.0.0
  */
-define('BIZZIO_SYNC_GENCLOUD_VERSION', '1.0.4');
+define('BIZZIO_SYNC_GENCLOUD_VERSION', '1.0.3');
 
 /**
  * Define BIZZIO_SYNC_GENCLOUD_DEBUG_LOG to true in wp-config.php to enable full debug logging.
