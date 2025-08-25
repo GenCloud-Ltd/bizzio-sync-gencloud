@@ -2,12 +2,6 @@ name: Build and Deploy WordPress Plugin
 
 on:
   workflow_dispatch: # Позволява ръчно стартиране от GitHub UI
-    inputs:
-      branch:
-        description: "Branch to build from"
-        required: false
-        default: "main"
-        type: string
   push:
     tags:
       - "v*" # Стартира се при всеки таг от вида v1.0.0
@@ -17,21 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PLUGIN_SLUG: bizzio-sync-for-woocommerce
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # При таг - използва commit-а на тага
-          # При manual dispatch - използва избрания branch или input параметъра
-          ref: ${{ github.event.inputs.branch || github.ref }}
-
+          # Винаги checkout от main branch, независимо от тага
+          ref: main
+       
       - name: Install PHP and Composer
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.1
           tools: composer
-
+       
       - name: Install and Configure PHPCS
         run: |
           composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
@@ -42,44 +35,44 @@ jobs:
           /home/runner/.composer/vendor/wp-coding-standards/wpcs,\
           /home/runner/.composer/vendor/phpcsstandards/phpcsutils,\
           /home/runner/.composer/vendor/phpcsstandards/phpcsextra
-
+       
       - name: Auto-fix code style issues (continue even if some remain)
         run: /home/runner/.composer/vendor/bin/phpcbf ./bizzio-sync-for-woocommerce || true
-
+       
       - name: Show remaining PHPCS issues
         run: |
           /home/runner/.composer/vendor/bin/phpcs ./bizzio-sync-for-woocommerce || true
-
+       
       - name: Build plugin ZIP
         run: |
           mkdir -p build
-
+          
           # Debug: показва от кой branch/commit строим
           echo "=== Build Information ==="
           echo "Git Branch: $(git branch --show-current)"
           echo "Git Commit: $(git rev-parse HEAD)"
           echo "Git Tag: $(git describe --tags --exact-match 2>/dev/null || echo 'No tag')"
           echo "========================="
-
+          
           # Създаваме ZIP с папката bizzio-sync-for-woocommerce и цялото й съдържание
           zip -r build/${{ env.PLUGIN_SLUG }}.zip bizzio-sync-for-woocommerce/ -x \
             "bizzio-sync-for-woocommerce/.git*" \
             "bizzio-sync-for-woocommerce/.DS_Store" \
             "bizzio-sync-for-woocommerce/node_modules/*"
-
+          
           # Debug: показва структурата на архива
           echo "=== ZIP Archive Contents ==="
           unzip -l build/${{ env.PLUGIN_SLUG }}.zip | head -20
           echo "=== Build Directory ==="
           ls -la build/
-
+       
       - name: Upload ZIP artifact (CI)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PLUGIN_SLUG }}
           path: build/${{ env.PLUGIN_SLUG }}.zip
-
-      # Поправен upload към GitHub Release
+       
+      # Поправен upload към GitHub Release с презапис
       - name: Upload ZIP to GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
@@ -88,14 +81,18 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             WordPress Plugin Release ${{ github.ref_name }}
-
+            Built from latest main branch.
+            
             ## Download
-            - [bizzio-sync-for-woocommerce.zip](bizzio-sync-for-woocommerce.zip) - Plugin ZIP file
+            - [bizzio-sync-for-woocommerce.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bizzio-sync-for-woocommerce.zip) - Plugin ZIP file
           draft: false
           prerelease: false
+          # Презаписва съществуващия release ако има такъв
+          make_latest: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+       
       # Optional: Deploy to WordPress.org (uncomment when ready)
       # - name: Deploy to WordPress.org
       #   if: ${{ secrets.WPORG_USERNAME != '' }}
