@@ -2,3 +2,8 @@
 *.log
 *-p
 .vscode
+node_modules
+composer.lock
+vendor
+bizzio-sync-for-woocommerce-pro
+Bizzio E-commerce API.pdf

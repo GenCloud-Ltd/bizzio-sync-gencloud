@@ -56,6 +56,7 @@ jobs:
           
           # Създаваме ZIP с папката bizzio-sync-for-woocommerce и цялото й съдържание
           zip -r build/${{ env.PLUGIN_SLUG }}.zip bizzio-sync-for-woocommerce/ -x \
+
             "bizzio-sync-for-woocommerce/.git*" \
             "bizzio-sync-for-woocommerce/.DS_Store" \
             "bizzio-sync-for-woocommerce/node_modules/*"
@@ -80,6 +81,7 @@ jobs:
           files: build/${{ env.PLUGIN_SLUG }}.zip
           name: Release ${{ github.ref_name }}
           body: |
+
             WordPress Plugin Release ${{ github.ref_name }}
             Built from latest main branch.
             

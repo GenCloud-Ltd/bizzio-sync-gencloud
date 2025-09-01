@@ -1,5 +1,4 @@
 <?php
-
 /**
  * The core plugin class.
  *
@@ -13,8 +12,8 @@
  * @subpackage Bizzio_Sync_Gencloud/includes
  * @author     gencloud <web@gencloud.bg>
  */
-class Bizzio_Sync_Gencloud
-{
+class Bizzio_Sync_Gencloud {
+
 
 	/**
 	 * The loader that's responsible for maintaining and registering all hooks that power
@@ -53,9 +52,8 @@ class Bizzio_Sync_Gencloud
 	 *
 	 * @since    1.0.0
 	 */
-	public function __construct()
-	{
-		if (defined('BIZZIO_SYNC_GENCLOUD_VERSION')) {
+	public function __construct() {
+		if ( defined( 'BIZZIO_SYNC_GENCLOUD_VERSION' ) ) {
 			$this->version = BIZZIO_SYNC_GENCLOUD_VERSION;
 		} else {
 			$this->version = '1.0.0';
@@ -81,23 +79,18 @@ class Bizzio_Sync_Gencloud
 	 * @since    1.0.0
 	 * @access   private
 	 */
-	private function load_dependencies()
-	{
+	private function load_dependencies() {
 
 		/**
 		 * The class responsible for orchestrating the actions and filters of the
 		 * core plugin.
 		 */
-		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-bizzio-sync-gencloud-loader.php';
-
-
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-bizzio-sync-gencloud-loader.php';
 
 		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/class-bizzio-sync-gencloud-admin.php';
-
-
+		require_once plugin_dir_path( __DIR__ ) . 'admin/class-bizzio-sync-gencloud-admin.php';
 
 		$this->loader = new Bizzio_Sync_Gencloud_Loader();
 	}
@@ -111,23 +104,22 @@ class Bizzio_Sync_Gencloud
 	 * @since    1.0.0
 	 * @access   private
 	 */
-	private function define_admin_hooks()
-	{
+	private function define_admin_hooks() {
 
-		$plugin_admin = new Bizzio_Sync_Gencloud_Admin($this->get_plugin_name(), $this->get_version());
+		$plugin_admin = new Bizzio_Sync_Gencloud_Admin( $this->get_plugin_name(), $this->get_version() );
 
-		$this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
-		$this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
-		$this->loader->add_action('admin_menu', $plugin_admin, 'add_plugin_admin_menu');
-		$this->loader->add_action('admin_init', $plugin_admin, 'setup_sections');
-		$this->loader->add_action('admin_init', $plugin_admin, 'setup_fields');
-		$this->loader->add_action('wp_ajax_bizzio_test_connection', $plugin_admin, 'test_connection_callback');
-		$this->loader->add_action('wp_ajax_bizzio_import_categories', $plugin_admin, 'import_categories_callback');
-		$this->loader->add_action('wp_ajax_bizzio_import_products', $plugin_admin, 'import_products_callback');
-		$this->loader->add_action('wp_ajax_bizzio_process_product_batch', $plugin_admin, 'process_product_batch_callback');
-		$this->loader->add_action('wp_ajax_bizzio_get_import_progress', $plugin_admin, 'get_import_progress_callback');
-		$this->loader->add_action('wp_ajax_bizzio_process_category_batch', $plugin_admin, 'process_category_batch_callback');
-		$this->loader->add_action('wp_ajax_bizzio_get_category_import_progress', $plugin_admin, 'get_category_import_progress_callback');
+		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
+		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
+		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_plugin_admin_menu' );
+		$this->loader->add_action( 'admin_init', $plugin_admin, 'setup_sections' );
+		$this->loader->add_action( 'admin_init', $plugin_admin, 'setup_fields' );
+		$this->loader->add_action( 'wp_ajax_bizzio_test_connection', $plugin_admin, 'test_connection_callback' );
+		$this->loader->add_action( 'wp_ajax_bizzio_import_categories', $plugin_admin, 'import_categories_callback' );
+		$this->loader->add_action( 'wp_ajax_bizzio_import_products', $plugin_admin, 'import_products_callback' );
+		$this->loader->add_action( 'wp_ajax_bizzio_process_product_batch', $plugin_admin, 'process_product_batch_callback' );
+		$this->loader->add_action( 'wp_ajax_bizzio_get_import_progress', $plugin_admin, 'get_import_progress_callback' );
+		$this->loader->add_action( 'wp_ajax_bizzio_process_category_batch', $plugin_admin, 'process_category_batch_callback' );
+		$this->loader->add_action( 'wp_ajax_bizzio_get_category_import_progress', $plugin_admin, 'get_category_import_progress_callback' );
 	}
 
 
@@ -137,8 +129,7 @@ class Bizzio_Sync_Gencloud
 	 *
 	 * @since    1.0.0
 	 */
-	public function run()
-	{
+	public function run() {
 		$this->loader->run();
 	}
 
@@ -149,8 +140,7 @@ class Bizzio_Sync_Gencloud
 	 * @since     1.0.0
 	 * @return    string    The name of the plugin.
 	 */
-	public function get_plugin_name()
-	{
+	public function get_plugin_name() {
 		return $this->plugin_name;
 	}
 
@@ -160,8 +150,7 @@ class Bizzio_Sync_Gencloud
 	 * @since     1.0.0
 	 * @return    Bizzio_Sync_Gencloud_Loader    Orchestrates the hooks of the plugin.
 	 */
-	public function get_loader()
-	{
+	public function get_loader() {
 		return $this->loader;
 	}
 
@@ -171,8 +160,7 @@ class Bizzio_Sync_Gencloud
 	 * @since     1.0.0
 	 * @return    string    The version number of the plugin.
 	 */
-	public function get_version()
-	{
+	public function get_version() {
 		return $this->version;
 	}
 }
