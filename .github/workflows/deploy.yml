@@ -56,9 +56,10 @@ jobs:
           
           # Създаваме ZIP с папката bizzio-sync-for-woocommerce и цялото й съдържание
           zip -r build/${{ env.PLUGIN_SLUG }}.zip bizzio-sync-for-woocommerce/ -x \
-"bizzio-sync-for-woocommerce/.git*" \
-"bizzio-sync-for-woocommerce/.DS_Store" \
-"bizzio-sync-for-woocommerce/node_modules/*"
+
+            "bizzio-sync-for-woocommerce/.git*" \
+            "bizzio-sync-for-woocommerce/.DS_Store" \
+            "bizzio-sync-for-woocommerce/node_modules/*"
           
           # Debug: показва структурата на архива
           echo "=== ZIP Archive Contents ==="
@@ -80,11 +81,12 @@ jobs:
           files: build/${{ env.PLUGIN_SLUG }}.zip
           name: Release ${{ github.ref_name }}
           body: |
-WordPress Plugin Release ${{ github.ref_name }}
-Built from latest main branch.
 
-## Download
-- [bizzio-sync-for-woocommerce.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bizzio-sync-for-woocommerce.zip) - Plugin ZIP file
+            WordPress Plugin Release ${{ github.ref_name }}
+            Built from latest main branch.
+            
+            ## Download
+            - [bizzio-sync-for-woocommerce.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bizzio-sync-for-woocommerce.zip) - Plugin ZIP file
           draft: false
           prerelease: false
           # Презаписва съществуващия release ако има такъв
