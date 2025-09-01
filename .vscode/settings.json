@@ -1,5 +1,5 @@
 {
-  "php.validate.executablePath": "/usr/bin/php",
+  "php.validate.executablePath": "c:/php/php.exe",
 
   "phpcs.enable": true,
   "phpcs.standard": "phpcs.xml.dist",
@@ -12,7 +12,7 @@
   },
 
   // Препоръчително: Intelephense за по-добър PHP интелисенс
-  "intelephense.environment.phpVersion": "8.2",
+  "intelephense.environment.phpVersion": "8.1",
   "intelephense.files.exclude": [
     "**/vendor/**",
     "**/node_modules/**"

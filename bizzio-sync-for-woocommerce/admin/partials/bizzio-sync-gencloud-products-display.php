@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * This file is used to markup the admin-facing aspects of the plugin.
  *
- * @link       https://incloud.bg
+ * @link       https://gencloud.bg
  * @since      1.0.0
  *
  * @package    Bizzio_Sync_Gencloud

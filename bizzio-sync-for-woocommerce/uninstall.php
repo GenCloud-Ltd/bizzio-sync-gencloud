@@ -2,7 +2,7 @@
 /**
  * Fired when the plugin is uninstalled.
  *
- * @link       https://incloud.bg
+ * @link       https://gencloud.bg
  * @since      1.0.0
  *
  * @package    Bizzio_Sync_Gencloud

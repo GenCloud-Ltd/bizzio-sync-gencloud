@@ -8,13 +8,13 @@ bizzio-sync-for-woocommerce -export-ignore
 bizzio-sync-for-woocommerce/** -export-ignore
 
 # 3) Exclude dev-only stuff inside the plugin (по желание)
-bizzio-sync-for-woocommerce/.github            export-ignore
+bizzio-sync-for-woocommerce/.githubexport-ignore
 bizzio-sync-for-woocommerce/.gitignore         export-ignore
-bizzio-sync-for-woocommerce/tests              export-ignore
+bizzio-sync-for-woocommerce/tests  export-ignore
 bizzio-sync-for-woocommerce/node_modules       export-ignore
 bizzio-sync-for-woocommerce/composer.*         export-ignore
 bizzio-sync-for-woocommerce/package*.json      export-ignore
 bizzio-sync-for-woocommerce/phpstan*.neon*     export-ignore
 bizzio-sync-for-woocommerce/.phpcs.xml*        export-ignore
 bizzio-sync-for-woocommerce/.editorconfig      export-ignore
-bizzio-sync-for-woocommerce/.vscode            export-ignore
+bizzio-sync-for-woocommerce/.vscodeexport-ignore

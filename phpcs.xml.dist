@@ -25,7 +25,7 @@
       <element key="var_dump" value=""/>
       <element key="print_r" value=""/>
 
-            <!-- Termination -->
+<!-- Termination -->
       <element key="die" value=""/>
       <element key="exit" value=""/>
 

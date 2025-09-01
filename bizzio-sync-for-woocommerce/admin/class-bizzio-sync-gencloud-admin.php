@@ -2,7 +2,7 @@
 /**
  * The admin-specific functionality of the plugin.
  *
- * @link       https://incloud.bg
+ * @link       https://gencloud.bg
  * @since      1.0.0
  *
  * @package    Bizzio_Sync_Gencloud
@@ -74,7 +74,7 @@ class Bizzio_Sync_Gencloud_Admin {
 			$this->plugin_name,
 			'bizzio_sync_gencloud_ajax',
 			array(
-				'ajax_url'                => admin_url( 'admin-ajax.php' ),
+				'ajax_url'    => admin_url( 'admin-ajax.php' ),
 				'import_products_nonce'   => wp_create_nonce( 'bizzio_import_products_nonce' ),
 				'import_categories_nonce' => wp_create_nonce( 'bizzio_import_categories_nonce' ),
 				'test_connection_nonce'   => wp_create_nonce( 'bizzio_test_connection_nonce' ),
@@ -246,7 +246,7 @@ class Bizzio_Sync_Gencloud_Admin {
 		$output = '';
 
 		if ( 'password' === $type ) {
-			$value            = get_option( $arguments['uid'] );
+			$value= get_option( $arguments['uid'] );
 			$placeholder_text = ! empty( $value ) ? '********' : $placeholder;
 			$output           = sprintf(
 				'<input id="%s" name="%s" type="password" placeholder="%s" value="" autocomplete="new-password" />',
@@ -440,7 +440,7 @@ class Bizzio_Sync_Gencloud_Admin {
 		$imported_count     = get_option( 'bizzio_sync_gencloud_imported_count', 0 );
 		$failed_count       = get_option( 'bizzio_sync_gencloud_failed_count', 0 );
 
-		$batch_size                  = 10; // Process 10 products at a time
+		$batch_size      = 10; // Process 10 products at a time
 		$articles_processed_in_batch = 0;
 
 		if ( empty( $articles_to_import ) || $current_progress >= $total_articles ) {
@@ -612,7 +612,7 @@ class Bizzio_Sync_Gencloud_Admin {
 			<soapenv:Body>
 				<tem:GetSiteGroupsRequest xmlns:tem="http://tempuri.org/">
 					<tem:ID_Site>' . $id_site . '</tem:ID_Site>
-                     <tem:IsFiles>false</tem:IsFiles>
+         <tem:IsFiles>false</tem:IsFiles>
 				</tem:GetSiteGroupsRequest>
 			</soapenv:Body>
 		</soapenv:Envelope>';
@@ -649,7 +649,7 @@ class Bizzio_Sync_Gencloud_Admin {
 	 * Process Bizzio API response and handle common errors.
 	 *
 	 * @param SimpleXMLElement|WP_Error $xml The SimpleXMLElement object or WP_Error on failure.
-	 * @param string                    $context  Context for error messages (e.g., 'categories', 'products').
+	 * @param string        $context  Context for error messages (e.g., 'categories', 'products').
 	 * @return SimpleXMLElement|WP_Error SimpleXMLElement on success, WP_Error on failure.
 	 */
 	private function _process_bizzio_response( $xml, $context ) {
@@ -659,7 +659,7 @@ class Bizzio_Sync_Gencloud_Admin {
 		}
 
 		$namespaces         = $xml->getNamespaces( true );
-		$body               = $xml->children( $namespaces['s'] )->Body;
+		$body   = $xml->children( $namespaces['s'] )->Body;
 		$response_container = $body->children( $namespaces[''] );
 
 		// Determine the correct response element based on context
@@ -724,14 +724,14 @@ class Bizzio_Sync_Gencloud_Admin {
 			<soapenv:Body>
 				<tem:GetSiteGroupsRequest xmlns:tem="http://tempuri.org/">
 					<tem:ID_Site>' . $id_site . '</tem:ID_Site>
-                     <tem:IsFiles>true</tem:IsFiles>
+         <tem:IsFiles>true</tem:IsFiles>
 				</tem:GetSiteGroupsRequest>
 			</soapenv:Body>
 		</soapenv:Envelope>';
 
 		$response        = $this->_make_soap_request( $soap_action, $request_body );
-		$body            = wp_remote_retrieve_body( $response );
-		$xml             = simplexml_load_string( $body );
+		$body= wp_remote_retrieve_body( $response );
+		$xml = simplexml_load_string( $body );
 		$responseElement = $this->_process_bizzio_response( $xml, 'categories' );
 
 		if ( is_wp_error( $responseElement ) ) {
@@ -801,7 +801,7 @@ class Bizzio_Sync_Gencloud_Admin {
 		$imported_count       = get_option( 'bizzio_sync_gencloud_category_imported_count', 0 );
 		$failed_count         = get_option( 'bizzio_sync_gencloud_category_failed_count', 0 );
 
-		$batch_size                    = 10; // Process 10 categories at a time
+		$batch_size        = 10; // Process 10 categories at a time
 		$categories_processed_in_batch = 0;
 
 		if ( empty( $categories_to_import ) || $current_progress >= $total_categories ) {
@@ -821,7 +821,7 @@ class Bizzio_Sync_Gencloud_Admin {
 
 			$category_name        = $category_data['Name'];
 			$category_id          = $category_data['ID'];
-			$parent_id            = $category_data['ID_Parent'];
+			$parent_id= $category_data['ID_Parent'];
 			$category_description = $category_data['Note'];
 			$category_image_url   = $category_data['Image'];
 
@@ -977,7 +977,7 @@ class Bizzio_Sync_Gencloud_Admin {
 			return;
 		}
 
-		$file_array             = array();
+		$file_array = array();
 		$file_array['name']     = basename( $image_url );
 		$file_array['tmp_name'] = $tmp;
 
@@ -1019,7 +1019,7 @@ class Bizzio_Sync_Gencloud_Admin {
 			return;
 		}
 
-		$file_array             = array();
+		$file_array = array();
 		$file_array['name']     = basename( $image_url );
 		$file_array['tmp_name'] = $tmp;
 
