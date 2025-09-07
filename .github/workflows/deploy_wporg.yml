@@ -36,7 +36,7 @@ jobs:
           fi
 
       - name: Deploy Plugin Code
-        uses: 10up/action-wordpress-plugin-deploy@v2
+        uses: 10up/action-wordpress-plugin-deploy@v1.4.0
         with:
           svn-username: ${{ secrets.WP_SVN_USERNAME }}
           svn-password: ${{ secrets.WP_SVN_PASSWORD }}
