@@ -225,7 +225,7 @@ jobs:
           rm -rf ${{ env.BUILD_DIR }}/bin || true
 
       - name: Test WordPress.org deploy action (dry run)
-        uses: 10up/action-wordpress-plugin-deploy@stable
+        uses: 10up/action-wordpress-plugin-deploy@2.2.2
         with:
           dry-run: true
         env:
