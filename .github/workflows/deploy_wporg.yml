@@ -2,45 +2,207 @@ name: Deploy Plugin Code to WordPress.org
 
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Perform a dry run (validate only, do not deploy)'
+        required: false
+        default: false
+        type: boolean
+      force_deploy:
+        description: 'Force deploy even if version already exists'
+        required: false
+        default: false
+        type: boolean
+  push:
+    tags:
+      - 'v*'
+
+env:
+  PLUGIN_SLUG: bizzio-sync-for-woocommerce
+  PLUGIN_DIR: bizzio-sync-for-woocommerce
+  BUILD_DIR: bizzio-sync-gencloud
 
 jobs:
-  deploy-code:
+  validate:
     runs-on: ubuntu-latest
-    name: Validate and Deploy
-
+    name: Validate Plugin
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Extract version from readme.txt
-        id: readme
+      - name: Validate plugin structure
         run: |
-          version=$(grep -i "Stable tag" bizzio-sync-for-woocommerce/readme.txt | awk '{print $3}')
-          echo "Version from readme.txt: $version"
-          echo "readme_version=$version" >> $GITHUB_OUTPUT
-
-      - name: Extract version from plugin file
-        id: plugin
-        run: |
-          version=$(grep -i "Version" bizzio-sync-for-woocommerce/bizzio-sync-for-woocommerce.php | head -n 1 | awk '{print $2}')
-          echo "Version from plugin file: $version"
-          echo "plugin_version=$version" >> $GITHUB_OUTPUT
-
-      - name: Ensure versions match
-        run: |
-          if [ "${{ steps.readme.outputs.readme_version }}" != "${{ steps.plugin.outputs.plugin_version }}" ]; then
-            echo "❌ Version mismatch! readme.txt = ${{ steps.readme.outputs.readme_version }}, plugin.php = ${{ steps.plugin.outputs.plugin_version }}"
+          if [ ! -f "${{ env.PLUGIN_DIR }}/readme.txt" ]; then
+            echo "❌ readme.txt not found in ${{ env.PLUGIN_DIR }}"
             exit 1
           fi
+          if [ ! -f "${{ env.PLUGIN_DIR }}/${{ env.PLUGIN_SLUG }}.php" ]; then
+            echo "❌ Main plugin file not found: ${{ env.PLUGIN_DIR }}/${{ env.PLUGIN_SLUG }}.php"
+            exit 1
+          fi
+          echo "✅ Plugin structure validation passed"
 
-      - name: Deploy Plugin Code
-        uses: 10up/action-wordpress-plugin-deploy@v1.4.0
+      - name: Extract and validate versions
+        id: version
+        run: |
+          # Extract version from readme.txt
+          readme_version=$(grep -i "^Stable tag:" ${{ env.PLUGIN_DIR }}/readme.txt | sed 's/.*: *//' | tr -d '\r\n ')
+          
+          # Extract version from plugin file (more robust pattern)
+          plugin_version=$(grep -i "^\s*\*\s*Version:" ${{ env.PLUGIN_DIR }}/${{ env.PLUGIN_SLUG }}.php | head -n 1 | sed 's/.*Version: *//' | tr -d '\r\n ')
+          
+          # Validate versions exist
+          if [ -z "$readme_version" ]; then
+            echo "❌ Could not extract version from readme.txt"
+            exit 1
+          fi
+          if [ -z "$plugin_version" ]; then
+            echo "❌ Could not extract version from plugin file"
+            exit 1
+          fi
+          
+          echo "📋 Version from readme.txt: $readme_version"
+          echo "📋 Version from plugin file: $plugin_version"
+          
+          # Ensure versions match
+          if [ "$readme_version" != "$plugin_version" ]; then
+            echo "❌ Version mismatch!"
+            echo "   readme.txt: $readme_version"
+            echo "   plugin.php: $plugin_version"
+            exit 1
+          fi
+          
+          # Validate version format (semantic versioning)
+          if ! echo "$readme_version" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)*$'; then
+            echo "⚠️  Warning: Version '$readme_version' doesn't follow semantic versioning"
+          fi
+          
+          echo "✅ Version validation passed: $readme_version"
+          echo "version=$readme_version" >> $GITHUB_OUTPUT
+
+      - name: Validate readme.txt format
+        run: |
+          # Check for required readme.txt sections
+          if ! grep -q "=== .* ===" ${{ env.PLUGIN_DIR }}/readme.txt; then
+            echo "❌ Plugin name section not found in readme.txt"
+            exit 1
+          fi
+          if ! grep -q "== Description ==" ${{ env.PLUGIN_DIR }}/readme.txt; then
+            echo "❌ Description section not found in readme.txt"
+            exit 1
+          fi
+          if ! grep -q "== Changelog ==" ${{ env.PLUGIN_DIR }}/readme.txt; then
+            echo "⚠️  Warning: Changelog section not found in readme.txt"
+          fi
+          echo "✅ readme.txt format validation passed"
+
+      - name: Check if version already exists
+        id: check
+        env:
+          WP_SVN_USERNAME: ${{ secrets.WP_SVN_USERNAME }}
+          WP_SVN_PASSWORD: ${{ secrets.WP_SVN_PASSWORD }}
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          
+          # Check if tag already exists in SVN
+          if svn list https://plugins.svn.wordpress.org/${{ env.PLUGIN_SLUG }}/tags/ --username="$WP_SVN_USERNAME" --password="$WP_SVN_PASSWORD" --non-interactive 2>/dev/null | grep -q "^$version/$"; then
+            if [ "${{ inputs.force_deploy }}" = "true" ]; then
+              echo "⚠️  Version $version already exists, but force deploy is enabled"
+              echo "should_deploy=true" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Version $version already exists in WordPress.org repository"
+              echo "Use force_deploy option to override, or increment the version number"
+              echo "should_deploy=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          else
+            echo "✅ Version $version is new"
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          fi
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: Deploy to WordPress.org
+    if: needs.validate.outputs.should_deploy == 'true' && inputs.dry_run != true
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js (if needed for build)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+        if: hashFiles('package.json') != ''
+
+      - name: Install dependencies and build (if needed)
+        run: |
+          if [ -f "package.json" ]; then
+            npm ci
+            npm run build --if-present
+          fi
+
+      - name: Prepare build directory
+        run: |
+          # Copy plugin files to build directory
+          mkdir -p ${{ env.BUILD_DIR }}
+          cp -r ${{ env.PLUGIN_DIR }}/* ${{ env.BUILD_DIR }}/
+          
+          # Remove development files
+          find ${{ env.BUILD_DIR }} -name "*.log" -delete
+          find ${{ env.BUILD_DIR }} -name ".DS_Store" -delete
+          find ${{ env.BUILD_DIR }} -name "Thumbs.db" -delete
+          rm -rf ${{ env.BUILD_DIR }}/.git* || true
+          rm -rf ${{ env.BUILD_DIR }}/node_modules || true
+          rm -f ${{ env.BUILD_DIR }}/package*.json || true
+          rm -f ${{ env.BUILD_DIR }}/composer.json || true
+          rm -f ${{ env.BUILD_DIR }}/composer.lock || true
+          rm -f ${{ env.BUILD_DIR }}/phpunit.xml* || true
+          rm -rf ${{ env.BUILD_DIR }}/tests || true
+          rm -rf ${{ env.BUILD_DIR }}/bin || true
+          
+          echo "✅ Build directory prepared"
+
+      - name: Deploy to WordPress.org
+        uses: 10up/action-wordpress-plugin-deploy@stable
         with:
           svn-username: ${{ secrets.WP_SVN_USERNAME }}
           svn-password: ${{ secrets.WP_SVN_PASSWORD }}
-          slug: bizzio-sync-for-woocommerce
-          build-dir: bizzio-sync-gencloud
-          skip-asset-copy: true
-          version: ${{ steps.readme.outputs.readme_version }}
+          slug: ${{ env.PLUGIN_SLUG }}
+          build-dir: ${{ env.BUILD_DIR }}
+          version: ${{ needs.validate.outputs.version }}
+          assets-dir: .wordpress-org
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          tag_name: v${{ needs.validate.outputs.version }}
+          name: Release ${{ needs.validate.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dry-run:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: Dry Run (Validation Only)
+    if: inputs.dry_run == true
+    steps:
+      - name: Dry run summary
+        run: |
+          echo "🧪 DRY RUN MODE - No deployment will occur"
+          echo "✅ All validations passed for version: ${{ needs.validate.outputs.version }}"
+          echo "📦 Plugin would be deployed to: ${{ env.PLUGIN_SLUG }}"
+          echo "🏗️  Build directory would be: ${{ env.BUILD_DIR }}"
