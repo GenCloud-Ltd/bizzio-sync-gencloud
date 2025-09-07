@@ -200,9 +200,44 @@ jobs:
     name: Dry Run (Validation Only)
     if: inputs.dry_run == true
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare build directory
+        run: |
+          mkdir -p ${{ env.BUILD_DIR }}
+          cp -r ${{ env.PLUGIN_DIR }}/* ${{ env.BUILD_DIR }}/
+          
+          # Remove development files
+          find ${{ env.BUILD_DIR }} -name "*.log" -delete
+          find ${{ env.BUILD_DIR }} -name ".DS_Store" -delete
+          find ${{ env.BUILD_DIR }} -name "Thumbs.db" -delete
+          rm -rf ${{ env.BUILD_DIR }}/.git* || true
+          rm -rf ${{ env.BUILD_DIR }}/node_modules || true
+          rm -f ${{ env.BUILD_DIR }}/package*.json || true
+          rm -f ${{ env.BUILD_DIR }}/composer.json || true
+          rm -f ${{ env.BUILD_DIR }}/composer.lock || true
+          rm -f ${{ env.BUILD_DIR }}/phpunit.xml* || true
+          rm -rf ${{ env.BUILD_DIR }}/tests || true
+          rm -rf ${{ env.BUILD_DIR }}/bin || true
+
+      - name: Test WordPress.org deploy action (dry run)
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          dry-run: true
+        env:
+          SVN_USERNAME: ${{ secrets.WP_SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.WP_SVN_PASSWORD }}
+          SLUG: ${{ env.PLUGIN_SLUG }}
+          BUILD_DIR: ${{ env.BUILD_DIR }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          ASSETS_DIR: .wordpress-org
+
       - name: Dry run summary
         run: |
-          echo "🧪 DRY RUN MODE - No deployment will occur"
+          echo "🧪 DRY RUN MODE - No deployment occurred"
           echo "✅ All validations passed for version: ${{ needs.validate.outputs.version }}"
-          echo "📦 Plugin would be deployed to: ${{ env.PLUGIN_SLUG }}"
-          echo "🏗️  Build directory would be: ${{ env.BUILD_DIR }}"
+          echo "📦 Plugin tested for deployment to: ${{ env.PLUGIN_SLUG }}"
+          echo "🏗️  Build directory prepared: ${{ env.BUILD_DIR }}"
