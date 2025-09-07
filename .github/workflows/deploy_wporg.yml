@@ -199,6 +199,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Dry Run (Validation Only)
     if: inputs.dry_run == true
+    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
