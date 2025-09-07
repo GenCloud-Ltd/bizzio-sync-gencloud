@@ -229,8 +229,8 @@ jobs:
         with:
           dry-run: true
         env:
-          SVN_USERNAME: ${{ secrets.WP_SVN_USERNAME }}
-          SVN_PASSWORD: ${{ secrets.WP_SVN_PASSWORD }}
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
           SLUG: ${{ env.PLUGIN_SLUG }}
           BUILD_DIR: ${{ env.BUILD_DIR }}
           VERSION: ${{ needs.validate.outputs.version }}
