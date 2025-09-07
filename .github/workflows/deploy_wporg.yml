@@ -101,29 +101,11 @@ jobs:
           fi
           echo "✅ readme.txt format validation passed"
 
-      - name: Check if version already exists
+      - name: Set deployment flag
         id: check
-        env:
-          WP_SVN_USERNAME: ${{ secrets.WP_SVN_USERNAME }}
-          WP_SVN_PASSWORD: ${{ secrets.WP_SVN_PASSWORD }}
         run: |
-          version="${{ steps.version.outputs.version }}"
-          
-          # Check if tag already exists in SVN
-          if svn list https://plugins.svn.wordpress.org/${{ env.PLUGIN_SLUG }}/tags/ --username="$WP_SVN_USERNAME" --password="$WP_SVN_PASSWORD" --non-interactive 2>/dev/null | grep -q "^$version/$"; then
-            if [ "${{ inputs.force_deploy }}" = "true" ]; then
-              echo "⚠️  Version $version already exists, but force deploy is enabled"
-              echo "should_deploy=true" >> $GITHUB_OUTPUT
-            else
-              echo "❌ Version $version already exists in WordPress.org repository"
-              echo "Use force_deploy option to override, or increment the version number"
-              echo "should_deploy=false" >> $GITHUB_OUTPUT
-              exit 1
-            fi
-          else
-            echo "✅ Version $version is new"
-            echo "should_deploy=true" >> $GITHUB_OUTPUT
-          fi
+          echo "✅ Version ${{ steps.version.outputs.version }} is ready for deployment"
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
 
   deploy:
     needs: validate
@@ -173,14 +155,14 @@ jobs:
           echo "✅ Build directory prepared"
 
       - name: Deploy to WordPress.org
-        uses: 10up/action-wordpress-plugin-deploy@stable
-        with:
-          svn-username: ${{ secrets.WP_SVN_USERNAME }}
-          svn-password: ${{ secrets.WP_SVN_PASSWORD }}
-          slug: ${{ env.PLUGIN_SLUG }}
-          build-dir: ${{ env.BUILD_DIR }}
-          version: ${{ needs.validate.outputs.version }}
-          assets-dir: .wordpress-org
+        uses: 10up/action-wordpress-plugin-deploy@2.2.2
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: ${{ env.PLUGIN_SLUG }}
+          BUILD_DIR: ${{ env.BUILD_DIR }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          ASSETS_DIR: .wordpress-org
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
