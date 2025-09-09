@@ -1,177 +1,83 @@
-name: Deploy main → WordPress SVN (trunk only)
+# The name of the Github Action that displays in github.com/<username>/<repo>/actions
+name: Deploy to WordPress.org Repository
 
+# Here we can define the events "on" which the action should be triggered.
 on:
-  workflow_dispatch: # Позволява ръчно стартиране от GitHub UI
-  push:
-    branches: [ main ]
-    paths:
-      - 'bizzio-sync-for-woocommerce/**'
-      - 'assets/**'
-      - '.gitattributes'
-      - '.distignore'
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: 'Dry run (no commit to SVN)'
-        type: boolean
-        required: true
-        default: false
 
+
+# A list of jobs involved in this workflow.
 jobs:
-  deploy-trunk:
+
+  # A unique job identifier.
+  #
+  # Github Actions can have multiple jobs and each can be referenced by its name.
+  # However, we only need to run a few steps here and they can be handled in a single job.
+  deploy_to_wp_repository:
+
+    # The proper name for the job being run.
+    name: Deploy to WP.org
+
+    # The environment this job should run on. In the context of WordPress, ubuntu-latest is
+    # pretty typical. Since we are only interacting with git and subversion, Ubuntu is perfect
+    # for this.
+    #
+    # Github does offer other platforms if you need them: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idruns-on
     runs-on: ubuntu-latest
-    concurrency:
-      group: wporg-trunk-deploy
-      cancel-in-progress: false
 
-    env:
-      # WordPress.org plugin slug (променяй, ако е различен от директорията):
-      SLUG: bizzio-sync-for-woocommerce
-      # Директорията в репото, където е плъгинът:
-      BUILD_DIR: bizzio-sync-for-woocommerce
-      # Ако имаш изображения за wp.org, дръж ги в /assets (по избор):
-      ASSETS_DIR: assets
-
-      # Secrets (добави ги в Settings → Secrets and variables → Actions)
-      SVN_USERNAME: ${{ secrets.WP_SVN_USERNAME }}
-      SVN_PASSWORD: ${{ secrets.WP_SVN_PASSWORD }}
-
-      # Управление на dry-run
-      INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
-
+    # Every job has a specific set of steps that it goes through to do its "work".
+    #
+    # Each step has a two key elements:
+    # • Name
+    # • a "run" command (an arbitrary CLI command to execute) OR a "uses" command that pulls in and executes a 3rd party action.
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Ensure Subversion & zip installed
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y subversion zip
+    # Most workflows begin by checking out the repository into the workflow filesystem.
+    #
+    # This is just like cloning a repository except it only checks out the specific commit
+    # the job is executed for. In our case here, the commit that the release is attached to.
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Validate required files
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ ! -d "$BUILD_DIR" ]]; then
-            echo "❌ BUILD_DIR not found: $BUILD_DIR"; exit 1
-          fi
-          if [[ ! -f "$BUILD_DIR/readme.txt" ]]; then
-            echo "❌ readme.txt is required in $BUILD_DIR (for wp.org)"; exit 1
-          fi
+    # Optional: If your plugin is using composer dependencies, we want to include them
+    # WITHOUT the dev dependencies.
+    - name: Build
+      run: |
+        npm install
+        npm run build
 
-      - name: Prepare export (use .distignore or .gitattributes)
-        id: export
-        shell: bash
-        run: |
-          set -euo pipefail
-          WORK="${GITHUB_WORKSPACE}"
-          SRC="${WORK}/${BUILD_DIR}"
-          OUT="${RUNNER_TEMP}/wp-export"
-          mkdir -p "$OUT"
+    - name: WordPress Plugin Deploy
 
-          if [[ -f "${WORK}/.distignore" ]]; then
-            echo "ℹ︎ Using .distignore"
-            rsync -rc --exclude-from="${WORK}/.distignore" "${SRC}/" "${OUT}/" --delete --delete-excluded
-          else
-            echo "ℹ︎ Using .gitattributes export-ignore (fallback)"
-            # Mark workspace safe (GitHub quirk)
-            git config --global --add safe.directory "$WORK"
-            git config --global user.email "github-actions@users.noreply.github.com"
-            git config --global user.name "github-actions"
-            # Sync deleted staged
-            test "$(git ls-files --deleted)" && git rm "$(git ls-files --deleted)" || true
-            # Temporary archive dir
-            TMP="${RUNNER_TEMP}/git-archive"
-            mkdir -p "$TMP"
-            # Create minimal .gitattributes if missing
-            if [[ ! -f "${WORK}/.gitattributes" ]]; then
-              cat > "${WORK}/.gitattributes" <<'EOF'
-/assets export-ignore
-/.gitattributes export-ignore
-/.gitignore export-ignore
-/.github export-ignore
-EOF
-              git add .gitattributes && git commit -m "Add .gitattributes for export (CI)"
-            fi
-            (cd "${SRC}" && git archive --format=tar HEAD) | tar -x -C "$OUT"
-          fi
+      # You can add unique ids to specific steps if you want to reference their output later in the workflow.
+      #
+      # Here, this unique identifier lets us use the output from the action to get the zip-path later.
+      id: deploy
 
-          echo "export_dir=$OUT" >> "$GITHUB_OUTPUT"
+      # The use statement lets us pull in the work done by 10up to deploy the plugin to the WordPress repository.
+      uses: 10up/action-wordpress-plugin-deploy@stable
 
-      - name: Checkout WP.org SVN
-        id: svn
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -z "${SVN_USERNAME:-}" || -z "${SVN_PASSWORD:-}" ]]; then
-            if [[ "${INPUT_DRY_RUN}" == "true" ]]; then
-              echo "⚠︎ Dry run w/o credentials — allowed."
-            else
-              echo "❌ Missing SVN credentials"; exit 1
-            fi
-          fi
-          SVN_URL="https://plugins.svn.wordpress.org/${SLUG}/"
-          SVN_DIR="${RUNNER_TEMP}/svn-${SLUG}"
-          echo "SVN_URL=$SVN_URL" >> "$GITHUB_OUTPUT"
-          echo "SVN_DIR=$SVN_DIR" >> "$GITHUB_OUTPUT"
-          svn checkout --depth immediates "$SVN_URL" "$SVN_DIR"
-          cd "$SVN_DIR"
-          svn update --set-depth infinity trunk
-          # assets са по избор
-          if [[ -d "$SVN_DIR/assets" || -d "${GITHUB_WORKSPACE}/${ASSETS_DIR}" ]]; then
-            svn update --set-depth infinity assets || true
-          fi
+      # Steps can also provide arguments, so this configures 10up's action to also generate a zip file.
+      with:
+        generate-zip: true
 
-      - name: Sync code to trunk (no tag)
-        shell: bash
-        run: |
-          set -euo pipefail
-          SVN_DIR="${{ steps.svn.outputs.SVN_DIR }}"
-          EXPORT_DIR="${{ steps.export.outputs.export_dir }}"
-          rsync -rc "${EXPORT_DIR}/" "${SVN_DIR}/trunk/" --delete --delete-excluded
+      # Steps can also set environment variables which can be configured in the Github settings for the
+      # repository. Here, we are using action secrets SVN_USERNAME, SVN_PASSWORD, and PLUGIN_SLUG which
+      # authenticate with WordPress and lets the action deploy our plugin to the repository.
+      #
+      # To learn more about setting and using secrets with Github Actions, check out: https://docs.github.com/en/actions/security-guides/encrypted-secrets?tool=webui#about-encrypted-secrets
+      env:
+        SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+        SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
 
-      - name: Sync assets (optional)
-        if: hashFiles('assets/**') != ''
-        shell: bash
-        run: |
-          set -euo pipefail
-          SVN_DIR="${{ steps.svn.outputs.SVN_DIR }}"
-          ASSETS="${GITHUB_WORKSPACE}/${ASSETS_DIR}"
-          if [[ -d "$ASSETS" ]]; then
-            rsync -rc "$ASSETS/" "${SVN_DIR}/assets/" --delete
-            # set correct mime types (png/jpg/gif/svg)
-            cd "${SVN_DIR}"
-            if compgen -G "assets/*.png" > /dev/null; then svn propset svn:mime-type "image/png" assets/*.png || true; fi
-            if compgen -G "assets/*.jpg" > /dev/null; then svn propset svn:mime-type "image/jpeg" assets/*.jpg || true; fi
-            if compgen -G "assets/*.gif" > /dev/null; then svn propset svn:mime-type "image/gif" assets/*.gif || true; fi
-            if compgen -G "assets/*.svg" > /dev/null; then svn propset svn:mime-type "image/svg+xml" assets/*.svg || true; fi
-          else
-            echo "ℹ︎ No /assets found in repo — skipping."
-          fi
+    # After the deploy, we also want to create a zip and upload it to the release on Github. We don't want
+    # users to have to go to the repository to find our plugin :).
+    - name: Upload release asset
+      uses: softprops/action-gh-release@v2
+      env:
+        # Note, this is an exception to action secrets: GH_TOKEN is always available and provides access to
+        # the current repository this action runs in.
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: SVN add/remove and status
-        shell: bash
-        run: |
-          set -euo pipefail
-          SVN_DIR="${{ steps.svn.outputs.SVN_DIR }}"
-          cd "$SVN_DIR"
-          svn add . --force > /dev/null
-          svn status | awk '/^\!/{print $2}' | xargs -r svn rm > /dev/null
-          echo "---- SVN status ----"
-          svn status
-
-      - name: Commit to SVN trunk
-        if: inputs.dry_run != true
-        shell: bash
-        run: |
-          set -euo pipefail
-          SVN_DIR="${{ steps.svn.outputs.SVN_DIR }}"
-          cd "$SVN_DIR"
-          svn commit -m "Sync trunk from GitHub main" --no-auth-cache --non-interactive \
-            --username "$SVN_USERNAME" --password "$SVN_PASSWORD"
-
-      - name: Dry-run note
-        if: inputs.dry_run == true
-        run: echo "Dry run completed — no SVN commit performed."
+      with:
+        # Provide what the file should be named when attached to the release (plugin-name.zip)
+        files: ${{ github.workspace }}/${{ github.event.repository.name }}.zip
