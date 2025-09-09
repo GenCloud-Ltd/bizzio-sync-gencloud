@@ -1,108 +1,30 @@
-name: Deploy to WordPress.org (original bash)
-
+name: Deploy and Release Plugin
 on:
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        description: 'Dry run (no commit to SVN)'
-        required: true
-        type: boolean
-        default: true
-      generate_zip:
-        description: 'Generate plugin zip artifact'
-        required: true
-        type: boolean
-        default: true
-
+  push:
+    tags:
+    - "*"
 jobs:
-  deploy:
-    name: Validate & Deploy
+  tag:
+    name: New tag
     runs-on: ubuntu-latest
-    concurrency:
-      group: wporg-deploy-${{ github.ref_name }}
-      cancel-in-progress: false
-
-    permissions:
-      contents: read
-
-    env:
-      # твоята структура
-      SLUG: bizzio-sync-gencloud
-      ASSETS_DIR: assets
-      BUILD_DIR: bizzio-sync-gencloud
-
-      # мапване към имената, които скриптът очаква
-      SVN_USERNAME: ${{ secrets.WP_SVN_USERNAME }}
-      SVN_PASSWORD: ${{ secrets.WP_SVN_PASSWORD }}
-
-      # флагове от UI
-      INPUT_DRY_RUN: ${{ inputs.dry_run }}
-      INPUT_GENERATE_ZIP: ${{ inputs.generate_zip }}
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      # 1) Извличаме версията от readme.txt (Stable tag) и от главния .php (Version)
-      - name: Extract versions (readme.txt & plugin.php)
-        id: v
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Stable tag от readme.txt
-          READMENE="${BUILD_DIR}/readme.txt"
-          if [[ ! -f "$READMENE" ]]; then
-            echo "readme.txt not found at $READMENE"; exit 1
-          fi
-          readme_version=$(sed -nE 's/^[[:space:]]*Stable tag:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+.*)$/\1/ip' "$READMENE" | head -n1 | tr -d '[:space:]')
-          if [[ -z "${readme_version:-}" ]]; then
-            echo "Stable tag not found in readme.txt"; exit 1
-          fi
-
-          # Version от главния файл (смени името ако е различно)
-          MAINPHP="${BUILD_DIR}/bizzio-sync-gencloud.php"
-          if [[ ! -f "$MAINPHP" ]]; then
-            echo "Main plugin file not found at $MAINPHP"; exit 1
-          fi
-          plugin_version=$(sed -nE 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+.*)$/\1/ip; s/^[[:space:]]*Version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+.*)$/\1/ip' "$MAINPHP" | head -n1 | tr -d '[:space:]')
-          if [[ -z "${plugin_version:-}" ]]; then
-            echo "Version header not found in main plugin file"; exit 1
-          fi
-
-          echo "readme_version=$readme_version" >> "$GITHUB_OUTPUT"
-          echo "plugin_version=$plugin_version" >> "$GITHUB_OUTPUT"
-
-      # 2) Валидация: версиите трябва да съвпадат
-      - name: Ensure versions match
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${{ steps.v.outputs.readme_version }}" != "${{ steps.v.outputs.plugin_version }}" ]]; then
-            echo "❌ Version mismatch: readme.txt Stable tag=${{ steps.v.outputs.readme_version }}; plugin Version=${{ steps.v.outputs.plugin_version }}"
-            exit 1
-          fi
-          echo "✅ Versions match: ${{ steps.v.outputs.readme_version }}"
-
-      # 3) Задаваме VERSION за оригиналния скрипт
-      - name: Set VERSION env
-        run: echo "VERSION=${{ steps.v.outputs.readme_version }}" >> $GITHUB_ENV
-
-      # 4) (по избор) Инсталираме zip util за generate_zip
-      - name: Ensure zip is available
-        if: inputs.generate_zip == true
-        run: sudo apt-get update -y && sudo apt-get install -y zip
-
-      # 5) Стартираме ОРИГИНАЛНИЯ ТИ bash (без промени)
-      - name: Run original deploy script
-        run: .github/scripts/deploy.sh
-
-      # 6) Качваме zip като артефакт, ако е генериран
-      - name: Upload artifact
-        if: inputs.generate_zip == true
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.SLUG }}-${{ steps.v.outputs.readme_version }}.zip
-          path: ${{ github.workspace }}/${{ env.SLUG }}.zip
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Build
+      run: |
+        npm install
+        npm run build
+    - name: WordPress Plugin Deploy
+      id: deploy
+      uses: 10up/action-wordpress-plugin-deploy@stable
+      with:
+        generate-zip: true
+      env:
+        SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+        SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{github.workspace}}/${{ github.event.repository.name }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
