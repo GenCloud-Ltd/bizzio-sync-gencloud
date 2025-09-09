@@ -1,5 +1,6 @@
 name: Deploy and Release Plugin
 on:
+  workflow_dispatch: # Позволява ръчно стартиране от GitHub UI
   push:
     tags:
     - "*"
