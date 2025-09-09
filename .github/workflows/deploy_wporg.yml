@@ -1,107 +1,50 @@
-name: Deploy to WordPress.org (manual version)
+name: Deploy TRUNK (code only)
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (e.g. 1.0.4)'
-        required: true
-        type: string
-      dry_run:
-        description: 'Dry run (no SVN commit)'
-        required: true
-        type: boolean
-        default: false
-      fail_on_mismatch:
-        description: 'Fail if readme/plugin header versions differ'
-        required: true
-        type: boolean
-        default: true
-      generate_zip:
-        description: 'Generate plugin zip'
-        required: true
-        type: boolean
-        default: true
 
 jobs:
-  deploy:
+  trunk:
     runs-on: ubuntu-latest
-
     env:
-      # --- твоите настройки ---
-      SLUG: bizzio-sync-for-woocommerce          # wp.org slug
-      BUILD_DIR: bizzio-sync-for-woocommerce     # папката на плъгина в репото
-      ASSETS_DIR: assets                         # ако нямаш assets, може да я махнеш
-
-      # --- SVN креденшъли от Secrets ---
-      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}   # или WP_SVN_USERNAME
-      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}   # или WP_SVN_PASSWORD
-
-      # --- флагове към скрипта ---
-      INPUT_DRY_RUN: ${{ inputs.dry_run }}
-      INPUT_GENERATE_ZIP: ${{ inputs.generate_zip }}
+      SLUG: bizzio-sync-for-woocommerce      # wp.org plugin slug
+      BUILD_DIR: bizzio-sync-for-woocommerce # папката на плъгина в GitHub
+      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Show layout (debug)
+      - name: Install Subversion
         run: |
-          pwd
-          ls -la
-          ls -la "$BUILD_DIR" || true
-          ls -la "$ASSETS_DIR" || true
+          sudo apt-get update -y
+          sudo apt-get install -y subversion rsync
 
-      # 1) sanitize ръчния input и сложи VERSION в env
-      - name: Normalize & export VERSION
-        id: ver
-        shell: bash
+      - name: Validate source
         run: |
-          set -euo pipefail
-          raw="${{ inputs.version }}"
-          # махни водещо 'v' (v1.0.4 -> 1.0.4)
-          ver="${raw#v}"
+          test -d "$BUILD_DIR" || { echo "Missing BUILD_DIR: $BUILD_DIR"; exit 1; }
+          test -f "$BUILD_DIR/readme.txt" || { echo "Missing readme.txt in $BUILD_DIR"; exit 1; }
 
-          # забрани очевидно невалидни стойности
-          if [[ -z "$ver" || "$ver" == "trunk" || "$ver" == refs/* || "$ver" == heads/* ]]; then
-            echo "❌ Invalid version: $raw"; exit 1
-          fi
-
-          # по желание: базова проверка за формат (семвер-ish)
-          if ! [[ "$ver" =~ ^[0-9]+(\.[0-9]+){1,2}([.-][0-9A-Za-z]+)?$ ]]; then
-            echo "⚠️ Version \"$ver\" is unusual. Continuing…"
-          fi
-
-          echo "VERSION=$ver" >> "$GITHUB_ENV"
-          echo "version=$ver" >> "$GITHUB_OUTPUT"
-          echo "✅ VERSION set to $ver"
-
-      # 2) (по избор) сверка readme.txt и главния .php
-      - name: Validate readme & plugin headers
-        if: inputs.fail_on_mismatch == true
-        shell: bash
+      - name: Checkout WP.org SVN (trunk only)
+        id: svn
         run: |
-          set -euo pipefail
-          READM="$BUILD_DIR/readme.txt"
-          MAINPHP="$(ls "$BUILD_DIR"/*.php | head -n1 || true)"
+          set -e
+          SVN_URL="https://plugins.svn.wordpress.org/${SLUG}"
+          SVN_DIR="${RUNNER_TEMP}/svn-${SLUG}"
+          echo "SVN_DIR=$SVN_DIR" >> "$GITHUB_OUTPUT"
+          svn checkout --depth immediates "$SVN_URL" "$SVN_DIR"
+          svn update --set-depth infinity "$SVN_DIR/trunk"
 
-          [[ -f "$READM" ]] || { echo "readme.txt not found at $READM"; exit 1; }
-          [[ -f "$MAINPHP" ]] || { echo "Main plugin PHP not found in $BUILD_DIR"; exit 1; }
+      - name: Sync code to trunk (no tags)
+        run: |
+          SVN_DIR="${{ steps.svn.outputs.SVN_DIR }}"
+          rsync -rc "$BUILD_DIR/" "$SVN_DIR/trunk/" --delete --delete-excluded
 
-          rd=$(sed -nE 's/^[[:space:]]*Stable tag:[[:space:]]*([^[:space:]]+).*$/\1/ip' "$READM" | head -n1 | tr -d '[:space:]')
-          ph=$(sed -nE 's/^[[:space:]]*(\* )?Version:[[:space:]]*([^[:space:]]+).*$/\2/ip' "$MAINPHP" | head -n1 | tr -d '[:space:]')
-          want="${{ steps.ver.outputs.version }}"
-
-          echo "Detected: readme=$rd plugin=$ph target=$want"
-
-          [[ -z "$rd" || -z "$ph" ]] && { echo "❌ Missing Stable tag or Version header"; exit 1; }
-          [[ "$rd" != "$want" ]] && { echo "❌ Stable tag ($rd) != input version ($want)"; exit 1; }
-          [[ "$ph" != "$want" ]] && { echo "❌ Plugin header Version ($ph) != input version ($want)"; exit 1; }
-
-          echo "✅ readme & plugin header match $want"
-
-      # 3) пусни оригиналния ти deploy.sh (ще ползва VERSION от env)
-      - name: Run original deploy script
-        shell: bash
-        run: bash .github/scripts/deploy.sh
+      - name: SVN add/remove and commit
+        run: |
+          SVN_DIR="${{ steps.svn.outputs.SVN_DIR }}"
+          cd "$SVN_DIR"
+          svn add . --force > /dev/null
+          svn status | awk '/^\!/{print $2}' | xargs -r svn rm > /dev/null
+          svn commit -m "Sync trunk from GitHub" --no-auth-cache --non-interactive \
+            --username "$SVN_USERNAME" --password "$SVN_PASSWORD"
