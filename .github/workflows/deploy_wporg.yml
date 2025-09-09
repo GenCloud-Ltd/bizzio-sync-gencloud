@@ -54,17 +54,26 @@ jobs:
 
           echo "version=$readme_version" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy to wp.org SVN (10up)
-        id: deploy
+      # - name: Deploy to wp.org SVN (10up)
+      #   id: deploy
+      #   uses: 10up/action-wordpress-plugin-deploy@stable
+      #   with:
+      #     svn-username: ${{ env.SVN_USERNAME }}
+      #     svn-password: ${{ env.SVN_PASSWORD }}
+      #     slug:        ${{ env.SLUG }}
+      #     build-dir:   ${{ env.PLUGIN_DIR }}
+      #     assets-dir:  ${{ env.ASSETS_DIR }}
+      #     version:     ${{ steps.ver.outputs.version }}  # <-- ключово: да не взема GITHUB_REF
+      #     generate-zip: true
+      - name: WordPress Plugin Deploy (trunk only)
         uses: 10up/action-wordpress-plugin-deploy@stable
         with:
-          svn-username: ${{ env.SVN_USERNAME }}
-          svn-password: ${{ env.SVN_PASSWORD }}
-          slug:        ${{ env.SLUG }}
-          build-dir:   ${{ env.PLUGIN_DIR }}
-          assets-dir:  ${{ env.ASSETS_DIR }}
-          version:     ${{ steps.ver.outputs.version }}  # <-- ключово: да не взема GITHUB_REF
-          generate-zip: true
+          svn-username: ${{ secrets.SVN_USERNAME }}
+          svn-password: ${{ secrets.SVN_PASSWORD }}
+          slug: bizzio-sync-for-woocommerce
+          build-dir: bizzio-sync-for-woocommerce
+          skip-tag: true
+
 
       - name: Upload zip artifact
         uses: actions/upload-artifact@v4
