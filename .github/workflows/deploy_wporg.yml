@@ -1,6 +1,7 @@
 name: Deploy main → WordPress SVN (trunk only)
 
 on:
+  workflow_dispatch: # Позволява ръчно стартиране от GitHub UI
   push:
     branches: [ main ]
     paths:
