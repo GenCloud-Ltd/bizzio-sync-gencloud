@@ -1,82 +1,107 @@
-name: Deploy to WordPress.org (release)
+name: Deploy to WordPress.org (manual version)
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.4)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Dry run (no SVN commit)'
+        required: true
+        type: boolean
+        default: false
+      fail_on_mismatch:
+        description: 'Fail if readme/plugin header versions differ'
+        required: true
+        type: boolean
+        default: true
+      generate_zip:
+        description: 'Generate plugin zip'
+        required: true
+        type: boolean
+        default: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     env:
-      PLUGIN_DIR: bizzio-sync-for-woocommerce   # папката на плъгина в репото
-      SLUG: bizzio-sync-for-woocommerce         # slug в wp.org
-      ASSETS_DIR: assets                        # ако нямаш assets, махни реда
-      SVN_USERNAME: ${{ secrets.SVN_USERNAME }} # или WP_SVN_USERNAME
-      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }} # или WP_SVN_PASSWORD
+      # --- твоите настройки ---
+      SLUG: bizzio-sync-for-woocommerce          # wp.org slug
+      BUILD_DIR: bizzio-sync-for-woocommerce     # папката на плъгина в репото
+      ASSETS_DIR: assets                         # ако нямаш assets, може да я махнеш
+
+      # --- SVN креденшъли от Secrets ---
+      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}   # или WP_SVN_USERNAME
+      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}   # или WP_SVN_PASSWORD
+
+      # --- флагове към скрипта ---
+      INPUT_DRY_RUN: ${{ inputs.dry_run }}
+      INPUT_GENERATE_ZIP: ${{ inputs.generate_zip }}
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Extract & validate version
+      - name: Show layout (debug)
+        run: |
+          pwd
+          ls -la
+          ls -la "$BUILD_DIR" || true
+          ls -la "$ASSETS_DIR" || true
+
+      # 1) sanitize ръчния input и сложи VERSION в env
+      - name: Normalize & export VERSION
         id: ver
         shell: bash
         run: |
           set -euo pipefail
-          READM="$PLUGIN_DIR/readme.txt"
-          MAINPHP="$PLUGIN_DIR/bizzio-sync-for-woocommerce.php"  # <-- смени ако е друго
+          raw="${{ inputs.version }}"
+          # махни водещо 'v' (v1.0.4 -> 1.0.4)
+          ver="${raw#v}"
+
+          # забрани очевидно невалидни стойности
+          if [[ -z "$ver" || "$ver" == "trunk" || "$ver" == refs/* || "$ver" == heads/* ]]; then
+            echo "❌ Invalid version: $raw"; exit 1
+          fi
+
+          # по желание: базова проверка за формат (семвер-ish)
+          if ! [[ "$ver" =~ ^[0-9]+(\.[0-9]+){1,2}([.-][0-9A-Za-z]+)?$ ]]; then
+            echo "⚠️ Version \"$ver\" is unusual. Continuing…"
+          fi
+
+          echo "VERSION=$ver" >> "$GITHUB_ENV"
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "✅ VERSION set to $ver"
+
+      # 2) (по избор) сверка readme.txt и главния .php
+      - name: Validate readme & plugin headers
+        if: inputs.fail_on_mismatch == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          READM="$BUILD_DIR/readme.txt"
+          MAINPHP="$(ls "$BUILD_DIR"/*.php | head -n1 || true)"
 
           [[ -f "$READM" ]] || { echo "readme.txt not found at $READM"; exit 1; }
-          [[ -f "$MAINPHP" ]] || { echo "Main plugin PHP not found at $MAINPHP"; exit 1; }
+          [[ -f "$MAINPHP" ]] || { echo "Main plugin PHP not found in $BUILD_DIR"; exit 1; }
 
-          readme_version=$(sed -nE 's/^[[:space:]]*Stable tag:[[:space:]]*([^[:space:]]+).*$/\1/ip' "$READM" | head -n1 | tr -d '[:space:]')
-          plugin_version=$(sed -nE 's/^[[:space:]]*(\* )?Version:[[:space:]]*([^[:space:]]+).*$/\2/ip' "$MAINPHP" | head -n1 | tr -d '[:space:]')
+          rd=$(sed -nE 's/^[[:space:]]*Stable tag:[[:space:]]*([^[:space:]]+).*$/\1/ip' "$READM" | head -n1 | tr -d '[:space:]')
+          ph=$(sed -nE 's/^[[:space:]]*(\* )?Version:[[:space:]]*([^[:space:]]+).*$/\2/ip' "$MAINPHP" | head -n1 | tr -d '[:space:]')
+          want="${{ steps.ver.outputs.version }}"
 
-          echo "Detected -> readme: ${readme_version:-EMPTY}, plugin: ${plugin_version:-EMPTY}"
+          echo "Detected: readme=$rd plugin=$ph target=$want"
 
-          # блокирай trunk/refs/*
-          if [[ "$readme_version" == "trunk" || "$readme_version" == refs/* || "$readme_version" == heads/* ]]; then
-            echo "❌ Invalid Stable tag ($readme_version). Set a real version like 1.2.3"
-            exit 1
-          fi
+          [[ -z "$rd" || -z "$ph" ]] && { echo "❌ Missing Stable tag or Version header"; exit 1; }
+          [[ "$rd" != "$want" ]] && { echo "❌ Stable tag ($rd) != input version ($want)"; exit 1; }
+          [[ "$ph" != "$want" ]] && { echo "❌ Plugin header Version ($ph) != input version ($want)"; exit 1; }
 
-          # (по желание) базова валидация за семантика x.y.z
-          if ! [[ "$readme_version" =~ ^[0-9]+(\.[0-9]+){1,2}(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "⚠️ Stable tag doesn't look like a version: $readme_version (continuing, but recommended: 1.2.3)"
-          fi
+          echo "✅ readme & plugin header match $want"
 
-          if [[ -z "${readme_version:-}" || -z "${plugin_version:-}" ]]; then
-            echo "Could not detect versions"; exit 1
-          fi
-          if [[ "$readme_version" != "$plugin_version" ]]; then
-            echo "❌ Version mismatch: readme=$readme_version, plugin=$plugin_version"; exit 1
-          fi
-
-          echo "version=$readme_version" >> "$GITHUB_OUTPUT"
-
-      # - name: Deploy to wp.org SVN (10up)
-      #   id: deploy
-      #   uses: 10up/action-wordpress-plugin-deploy@stable
-      #   with:
-      #     svn-username: ${{ env.SVN_USERNAME }}
-      #     svn-password: ${{ env.SVN_PASSWORD }}
-      #     slug:        ${{ env.SLUG }}
-      #     build-dir:   ${{ env.PLUGIN_DIR }}
-      #     assets-dir:  ${{ env.ASSETS_DIR }}
-      #     version:     ${{ steps.ver.outputs.version }}  # <-- ключово: да не взема GITHUB_REF
-      #     generate-zip: true
-      - name: WordPress Plugin Deploy (trunk only)
-        uses: 10up/action-wordpress-plugin-deploy@stable
-        with:
-          svn-username: ${{ secrets.SVN_USERNAME }}
-          svn-password: ${{ secrets.SVN_PASSWORD }}
-          slug: bizzio-sync-for-woocommerce
-          build-dir: bizzio-sync-for-woocommerce
-          skip-tag: true
-
-
-      - name: Upload zip artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.SLUG }}-${{ steps.ver.outputs.version }}.zip
-          path: ${{ steps.deploy.outputs.zip-path }}
+      # 3) пусни оригиналния ти deploy.sh (ще ползва VERSION от env)
+      - name: Run original deploy script
+        shell: bash
+        run: bash .github/scripts/deploy.sh
