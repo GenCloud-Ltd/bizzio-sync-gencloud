@@ -1,30 +1,87 @@
 name: Deploy to WordPress.org Repository
+
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}   # ръчно стартиране от Actions
 
 jobs:
   deploy:
+    name: Deploy plugin (trunk + tag)
     runs-on: ubuntu-latest
+
     env:
-      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}         # или WP_SVN_USERNAME
-      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}         # или WP_SVN_PASSWORD
-      SLUG: bizzio-sync-for-woocommerce
-      ASSETS_DIR: assets
-      BUILD_DIR: bizzio-sync-for-woocommerce
-      INPUT_DRY_RUN: true
-      INPUT_GENERATE_ZIP: true
+      # === НАСТРОЙКИ НА ПРОЕКТА ===
+      PLUGIN_DIR: bizzio-sync-for-woocommerce     # <-- ИМЕТО на папката с плъгина в репото
+      ASSETS_DIR: ${{ secrets.ASSETS_DIR }}       # напр. 'assets' (или остави празно ако нямаш)
+      SLUG:       ${{ secrets.SLUG }}             # slug в wp.org (трябва да съвпада с репото в SVN)
+
+      # === SVN креденшъли (от Secrets) ===
+      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}   # можеш да смениш към secrets.WP_SVN_USERNAME
+      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}   # или към secrets.WP_SVN_PASSWORD
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Диагностика: виж структурата (по желание)
       - name: Show workspace layout
         run: |
           pwd
           ls -la
-          ls -la .github || true
-          ls -la .github/scripts || true
+          ls -la "$PLUGIN_DIR" || true
+          ls -la "$ASSETS_DIR" || true
 
-      - name: Run original deploy script
+      # Извличане и проверка на версията:
+      #  - Stable tag от readme.txt
+      #  - Version от главния .php на плъгина
+      - name: Extract & validate version
+        id: ver
         shell: bash
-        run: bash .github/scripts/deploy.sh
+        run: |
+          set -euo pipefail
+          READM="$PLUGIN_DIR/readme.txt"
+
+          # Опит за автом. намиране на главния .php (ако знаеш името, смени pattern-а)
+          MAINPHP=$(ls "$PLUGIN_DIR"/*.php | head -n1 || true)
+
+          if [[ ! -f "$READM" ]]; then
+            echo "readme.txt not found at $READM"; exit 1
+          fi
+          if [[ -z "$MAINPHP" || ! -f "$MAINPHP" ]]; then
+            echo "Main plugin file not found in $PLUGIN_DIR"; exit 1
+          fi
+
+          readme_version=$(sed -nE 's/^[[:space:]]*Stable tag:[[:space:]]*([^[:space:]]+).*$/\1/ip' "$READM" | head -n1 | tr -d '[:space:]')
+          plugin_version=$(sed -nE 's/^[[:space:]]*(\* )?Version:[[:space:]]*([^[:space:]]+).*$/\2/ip' "$MAINPHP" | head -n1 | tr -d '[:space:]')
+
+          echo "Detected versions -> readme: ${readme_version:-EMPTY} | plugin: ${plugin_version:-EMPTY}"
+
+          if [[ -z "${readme_version:-}" || -z "${plugin_version:-}" ]]; then
+            echo "Could not detect versions. Ensure 'Stable tag' in readme.txt and 'Version' header in main PHP file."; exit 1
+          fi
+          if [[ "$readme_version" != "$plugin_version" ]]; then
+            echo "❌ Version mismatch: readme.txt=$readme_version plugin.php=$plugin_version"; exit 1
+          fi
+
+          echo "version=$readme_version" >> "$GITHUB_OUTPUT"
+
+      # Основното деплойване към wp.org SVN (10up action)
+      - name: WordPress Plugin Deploy
+        id: deploy
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          svn-username: ${{ env.SVN_USERNAME }}
+          svn-password: ${{ env.SVN_PASSWORD }}
+          slug:        ${{ env.SLUG }}
+          build-dir:   ${{ env.PLUGIN_DIR }}
+          assets-dir:  ${{ env.ASSETS_DIR }}
+          version:     ${{ steps.ver.outputs.version }}
+          generate-zip: true
+
+      # Качи .zip като артефакт (удобно при workflow_dispatch)
+      - name: Upload plugin zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.SLUG }}-${{ steps.ver.outputs.version }}.zip
+          path: ${{ steps.deploy.outputs.zip-path }}
