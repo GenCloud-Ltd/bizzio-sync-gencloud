@@ -3,28 +3,28 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy_to_wp_repository:
+  deploy:
     runs-on: ubuntu-latest
     env:
-      # Мап към Repository secrets (избери кой комплект ще ползваш)
-      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}         # или ${{ secrets.WP_SVN_USERNAME }}
-      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}         # или ${{ secrets.WP_SVN_PASSWORD }}
-
+      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}         # или WP_SVN_USERNAME
+      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}         # или WP_SVN_PASSWORD
       SLUG: bizzio-sync-for-woocommerce
       ASSETS_DIR: assets
       BUILD_DIR: bizzio-sync-for-woocommerce
-
-      INPUT_DRY_RUN: true        # първо тествай с true
+      INPUT_DRY_RUN: true
       INPUT_GENERATE_ZIP: true
-
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Check secrets presence (no values)
-        shell: bash
+      - name: Show workspace layout
         run: |
-          [[ -z "${SVN_USERNAME:-}" ]] && echo "SVN_USERNAME is EMPTY" || echo "SVN_USERNAME is set"
-          [[ -z "${SVN_PASSWORD:-}" ]] && echo "SVN_PASSWORD is EMPTY" || echo "SVN_PASSWORD is set"
+          pwd
+          ls -la
+          ls -la .github || true
+          ls -la .github/scripts || true
 
       - name: Run original deploy script
-        run: .github/scripts/deploy.sh
+        shell: bash
+        run: bash .github/scripts/deploy.sh
