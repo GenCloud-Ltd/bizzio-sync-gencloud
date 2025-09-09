@@ -1,66 +1,30 @@
 name: Deploy to WordPress.org Repository
-
 on:
   workflow_dispatch:
 
 jobs:
   deploy_to_wp_repository:
-    name: Deploy to WP.org
     runs-on: ubuntu-latest
+    env:
+      # Мап към Repository secrets (избери кой комплект ще ползваш)
+      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}         # или ${{ secrets.WP_SVN_USERNAME }}
+      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}         # или ${{ secrets.WP_SVN_PASSWORD }}
+
+      SLUG: bizzio-sync-for-woocommerce
+      ASSETS_DIR: assets
+      BUILD_DIR: bizzio-sync-for-woocommerce
+
+      INPUT_DRY_RUN: true        # първо тествай с true
+      INPUT_GENERATE_ZIP: true
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      # (По избор) ако имаш Node build, ще се изпълни само ако има package.json
-      - name: Build (optional, only if package.json exists)
-        if: hashFiles('**/package.json') != ''
-        run: |
-          npm ci
-          npm run build
-
-      # Извличаме версията от readme.txt (Stable tag) и валидираме с главния .php
-      - name: Extract & validate version
-        id: ver
+      - name: Check secrets presence (no values)
         shell: bash
         run: |
-          set -euo pipefail
-          PLUG_DIR="bizzio-sync-for-woocommerce"
-          READM="${PLUG_DIR}/readme.txt"
-          MAINPHP="${PLUG_DIR}/bizzio-sync-for-woocommerce.php"   # смени името, ако е друго
+          [[ -z "${SVN_USERNAME:-}" ]] && echo "SVN_USERNAME is EMPTY" || echo "SVN_USERNAME is set"
+          [[ -z "${SVN_PASSWORD:-}" ]] && echo "SVN_PASSWORD is EMPTY" || echo "SVN_PASSWORD is set"
 
-          if [[ ! -f "$READM" ]]; then echo "readme.txt not found at $READM"; exit 1; fi
-          if [[ ! -f "$MAINPHP" ]]; then echo "Main plugin file not found at $MAINPHP"; exit 1; fi
-
-          readme_version=$(sed -nE 's/^[[:space:]]*Stable tag:[[:space:]]*([^[:space:]]+).*$/\1/ip' "$READM" | head -n1 | tr -d '[:space:]')
-          plugin_version=$(sed -nE 's/^[[:space:]]*(\* )?Version:[[:space:]]*([^[:space:]]+).*$/\2/ip' "$MAINPHP" | head -n1 | tr -d '[:space:]')
-
-          if [[ -z "${readme_version:-}" || -z "${plugin_version:-}" ]]; then
-            echo "Could not detect versions. readme=$readme_version plugin=$plugin_version"; exit 1
-          fi
-          if [[ "$readme_version" != "$plugin_version" ]]; then
-            echo "❌ Version mismatch: readme.txt=$readme_version plugin.php=$plugin_version"; exit 1
-          fi
-
-          echo "version=$readme_version" >> "$GITHUB_OUTPUT"
-
-      - name: WordPress Plugin Deploy
-        id: deploy
-        uses: 10up/action-wordpress-plugin-deploy@stable
-        with:
-          svn-username: ${{ secrets.SVN_USERNAME }}
-          svn-password: ${{ secrets.SVN_PASSWORD }}
-          slug: bizzio-sync-for-woocommerce
-          build-dir: bizzio-sync-for-woocommerce
-          assets-dir: assets
-          version: ${{ steps.ver.outputs.version }}
-          generate-zip: true
-
-      # Качи .zip като артефакт (по-надеждно при workflow_dispatch от колкото GitHub Release)
-      - name: Upload plugin zip artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bizzio-sync-for-woocommerce-${{ steps.ver.outputs.version }}.zip
-          path: ${{ steps.deploy.outputs.zip-path }}
+      - name: Run original deploy script
+        run: .github/scripts/deploy.sh
