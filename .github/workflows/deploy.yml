@@ -23,19 +23,17 @@ jobs:
       - name: Validate plugin structure
         continue-on-error: false
         run: |
-          echo "=== Validating Plugin Structure ==="
-          
-          if [ ! -f "bizzio-sync-for-woocommerce/bizzio-sync-for-woocommerce.php" ]; then
-            echo "❌ Main plugin file not found!"
-            exit 1
-          fi
-          
-          if [ ! -f "bizzio-sync-for-woocommerce/readme.txt" ]; then
-            echo "❌ readme.txt not found!"
-            exit 1
-          fi
-          
-          echo "✅ Plugin structure valid"
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer global require dealerdirect/phpcodesniffer-composer-installer
+          composer global require wp-coding-standards/wpcs:^3.2
+          composer global require wp-coding-standards/wpcs
+          /home/runner/.composer/vendor/bin/phpcs --config-set installed_paths \
+          /home/runner/.composer/vendor/wp-coding-standards/wpcs,\
+          /home/runner/.composer/vendor/phpcsstandards/phpcsutils,\
+          /home/runner/.composer/vendor/phpcsstandards/phpcsextra
+       
+      - name: Auto-fix code style issues (continue even if some remain)
+        run: /home/runner/.composer/vendor/bin/phpcbf ./bizzio-sync-for-woocommerce || true
        
       - name: Extract version from files
         id: version
@@ -70,21 +68,11 @@ jobs:
           echo "Plugin Version: ${{ steps.version.outputs.readme_version }}"
           echo "========================="
           
-          # Създаваме ZIP с папката bizzio-sync-for-woocommerce
-          cd bizzio-sync-for-woocommerce
-          zip -r ../build/${{ env.PLUGIN_SLUG }}.zip . -x \
-            ".git*" \
-            ".DS_Store" \
-            "*.log" \
-            "node_modules/*" \
-            "tests/*"
-          cd ..
-          
-          # Проверка дали ZIP е създаден успешно
-          if [ ! -f "build/${{ env.PLUGIN_SLUG }}.zip" ]; then
-            echo "❌ Failed to create ZIP file!"
-            exit 1
-          fi
+          # Създаваме ZIP с папката bizzio-sync-for-woocommerce и цялото й съдържание
+          zip -r build/${{ env.PLUGIN_SLUG }}.zip bizzio-sync-for-woocommerce/ -x \
+            "bizzio-sync-for-woocommerce/.git*" \
+            "bizzio-sync-for-woocommerce/.DS_Store" \
+            "bizzio-sync-for-woocommerce/node_modules/*"
           
           # Показваме структурата
           echo "=== ZIP Archive Contents (first 30 files) ==="

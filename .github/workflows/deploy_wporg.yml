@@ -1,0 +1,50 @@
+name: Deploy TRUNK (code only)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  trunk:
+    runs-on: ubuntu-latest
+    env:
+      SLUG: bizzio-sync-for-woocommerce      # wp.org plugin slug
+      BUILD_DIR: bizzio-sync-for-woocommerce # папката на плъгина в GitHub
+      SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+      SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Subversion
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y subversion rsync
+
+      - name: Validate source
+        run: |
+          test -d "$BUILD_DIR" || { echo "Missing BUILD_DIR: $BUILD_DIR"; exit 1; }
+          test -f "$BUILD_DIR/readme.txt" || { echo "Missing readme.txt in $BUILD_DIR"; exit 1; }
+
+      - name: Checkout WP.org SVN (trunk only)
+        id: svn
+        run: |
+          set -e
+          SVN_URL="https://plugins.svn.wordpress.org/${SLUG}"
+          SVN_DIR="${RUNNER_TEMP}/svn-${SLUG}"
+          echo "SVN_DIR=$SVN_DIR" >> "$GITHUB_OUTPUT"
+          svn checkout --depth immediates "$SVN_URL" "$SVN_DIR"
+          svn update --set-depth infinity "$SVN_DIR/trunk"
+
+      - name: Sync code to trunk (no tags)
+        run: |
+          SVN_DIR="${{ steps.svn.outputs.SVN_DIR }}"
+          rsync -rc "$BUILD_DIR/" "$SVN_DIR/trunk/" --delete --delete-excluded
+
+      - name: SVN add/remove and commit
+        run: |
+          SVN_DIR="${{ steps.svn.outputs.SVN_DIR }}"
+          cd "$SVN_DIR"
+          svn add . --force > /dev/null
+          svn status | awk '/^\!/{print $2}' | xargs -r svn rm > /dev/null
+          svn commit -m "Sync trunk from GitHub" --no-auth-cache --non-interactive \
+            --username "$SVN_USERNAME" --password "$SVN_PASSWORD"

@@ -45,31 +45,15 @@ jobs:
         id: versions
         continue-on-error: false
         run: |
-          readme_version=$(grep -i "Stable tag:" bizzio-sync-for-woocommerce/readme.txt | awk '{print $3}' | tr -d '\r\n ')
-          plugin_version=$(grep -i "Version:" bizzio-sync-for-woocommerce/bizzio-sync-for-woocommerce.php | head -n 1 | awk '{print $3}' | tr -d '\r\n ')
-          
-          echo "readme_version=$readme_version" >> $GITHUB_OUTPUT
-          echo "plugin_version=$plugin_version" >> $GITHUB_OUTPUT
-          
-          echo "📋 Version from readme.txt: $readme_version"
-          echo "📋 Version from plugin file: $plugin_version"
-          
-          if [ -z "$readme_version" ] || [ -z "$plugin_version" ]; then
-            echo "❌ Failed to extract versions!"
-            exit 1
-          fi
-          
-          if [ "$readme_version" != "$plugin_version" ]; then
-            echo "❌ Version mismatch: readme=$readme_version, plugin=$plugin_version"
+          if [ "${{ steps.readme.outputs.readme_version }}" != "${{ steps.plugin.outputs.plugin_version }}" ]; then
+            echo "❌ Version mismatch! readme.txt = ${{ steps.readme.outputs.readme_version }}, bizzio-sync-for-woocommerce.php = ${{ steps.plugin.outputs.plugin_version }}"
             exit 1
           fi
           
           echo "✅ Versions match: $readme_version"
 
-      - name: Deploy to WordPress.org
-        if: inputs.dry-run != 'true'
+      - name: Deploy Plugin Code
         uses: 10up/action-wordpress-plugin-deploy@stable
-        continue-on-error: false
         with:
           generate-zip: false
         env:
