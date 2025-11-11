@@ -3,7 +3,7 @@ Contributors: gencloud
 Tags: woocommerce, bizzio, erp, sync, import
 Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: 1.0.4
+Stable tag: 1.1.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -58,6 +58,15 @@ For support, please contact us at [web@gencloud.bg](mailto:web@gencloud.bg).
 3.  The category import page.
 
 == Changelog ==
+
+= 1.1.0 - 2025-11-11 =
+* Major code refactoring for improved architecture and extensibility.
+* Added dedicated API layer with separate classes for GetArticles and GetSiteGroups methods.
+* Introduced Image Helper class for centralized image processing functionality.
+* Improved separation of concerns - admin class now focuses only on AJAX handlers and UI.
+* Enhanced code maintainability and WordPress Coding Standards compliance.
+* Optimized database queries for better performance.
+* Prepared architecture for future features.
 
 = 1.0.4 - 2025-09-01 =
 * Updated Author URI and @link tags to gencloud.bg.

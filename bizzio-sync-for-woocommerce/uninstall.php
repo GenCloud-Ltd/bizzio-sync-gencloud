@@ -15,7 +15,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 // Delete plugin options from the options table.
-$options = array(
+$bizzio_sync_options = array(
 	'bizzio_api_database',
 	'bizzio_api_username',
 	'bizzio_api_password',
@@ -34,8 +34,8 @@ $options = array(
 	'bizzio_sync_gencloud_category_import_status',
 );
 
-foreach ( $options as $option_name ) {
-	delete_option( $option_name );
+foreach ( $bizzio_sync_options as $bizzio_sync_option_name ) {
+	delete_option( $bizzio_sync_option_name );
 }
 
 // Delete the Bizzio logs/xml directory using WP_Filesystem.
@@ -46,9 +46,9 @@ if ( is_null( $wp_filesystem ) ) {
 	WP_Filesystem();
 }
 
-$upload_dir = wp_upload_dir();
-$bizzio_dir = $upload_dir['basedir'] . '/bizzio';
+$bizzio_sync_upload_dir = wp_upload_dir();
+$bizzio_sync_dir        = $bizzio_sync_upload_dir['basedir'] . '/bizzio';
 
-if ( $wp_filesystem->is_dir( $bizzio_dir ) ) {
-	$wp_filesystem->delete( $bizzio_dir, true );
+if ( $wp_filesystem->is_dir( $bizzio_sync_dir ) ) {
+	$wp_filesystem->delete( $bizzio_sync_dir, true );
 }

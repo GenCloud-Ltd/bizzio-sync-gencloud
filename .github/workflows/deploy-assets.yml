@@ -1,0 +1,29 @@
+name: Deploy Plugin Code to WordPress.org
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to tag (e.g. 1.2.3)'
+        required: true
+        type: string
+
+jobs:
+  deploy-code:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Deploy Plugin Code
+        uses: 10up/action-wordpress-plugin-deploy@v2
+        with:
+          svn-username: ${{ secrets.WP_SVN_USERNAME }}
+          svn-password: ${{ secrets.WP_SVN_PASSWORD }}
+          slug: bizzio-sync-for-woocommerce
+          build-dir: bizzio-sync-gencloud
+          skip-asset-copy: true
+          version: ${{ github.event.inputs.version }}

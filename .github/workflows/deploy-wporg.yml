@@ -1,0 +1,46 @@
+name: Deploy Plugin Code to WordPress.org
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-code:
+    runs-on: ubuntu-latest
+    name: Validate and Deploy
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from readme.txt
+        id: readme
+        run: |
+          version=$(grep -i "Stable tag" bizzio-sync-for-woocommerce/readme.txt | awk '{print $3}')
+          echo "Version from readme.txt: $version"
+          echo "readme_version=$version" >> $GITHUB_OUTPUT
+
+      - name: Extract version from plugin file
+        id: plugin
+        run: |
+          version=$(grep -i "Version" bizzio-sync-for-woocommerce/bizzio-sync-for-woocommerce.php | head -n 1 | awk '{print $2}')
+          echo "Version from plugin file: $version"
+          echo "plugin_version=$version" >> $GITHUB_OUTPUT
+
+      - name: Ensure versions match
+        run: |
+          if [ "${{ steps.readme.outputs.readme_version }}" != "${{ steps.plugin.outputs.plugin_version }}" ]; then
+            echo "❌ Version mismatch! readme.txt = ${{ steps.readme.outputs.readme_version }}, plugin.php = ${{ steps.plugin.outputs.plugin_version }}"
+            exit 1
+          fi
+
+      - name: Deploy Plugin Code
+        uses: 10up/action-wordpress-plugin-deploy@v2
+        with:
+          svn-username: ${{ secrets.WP_SVN_USERNAME }}
+          svn-password: ${{ secrets.WP_SVN_PASSWORD }}
+          slug: bizzio-sync-for-woocommerce
+          build-dir: bizzio-sync-for-woocommerce
+          skip-asset-copy: true
+          version: ${{ steps.readme.outputs.readme_version }}

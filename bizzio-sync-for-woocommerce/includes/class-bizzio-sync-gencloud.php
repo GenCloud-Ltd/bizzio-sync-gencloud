@@ -56,7 +56,7 @@ class Bizzio_Sync_Gencloud {
 		if ( defined( 'BIZZIO_SYNC_GENCLOUD_VERSION' ) ) {
 			$this->version = BIZZIO_SYNC_GENCLOUD_VERSION;
 		} else {
-			$this->version = '1.0.0';
+			$this->version = '1.1.0';
 		}
 		$this->plugin_name = 'bizzio-sync-gencloud';
 
@@ -91,6 +91,18 @@ class Bizzio_Sync_Gencloud {
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
 		require_once plugin_dir_path( __DIR__ ) . 'admin/class-bizzio-sync-gencloud-admin.php';
+
+		/**
+		 * The classes responsible for handling API communication.
+		 */
+		require_once plugin_dir_path( __DIR__ ) . 'includes/api/class-bizzio-sync-gencloud-api-client.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/api/class-bizzio-sync-gencloud-api-get-articles.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/api/class-bizzio-sync-gencloud-api-get-site-groups.php';
+
+		/**
+		 * The helper classes for image processing and other utilities.
+		 */
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-bizzio-sync-gencloud-image-helper.php';
 
 		$this->loader = new Bizzio_Sync_Gencloud_Loader();
 	}
