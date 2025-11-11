@@ -31,7 +31,7 @@ jobs:
       - name: Ensure versions match
         run: |
           if [ "${{ steps.readme.outputs.readme_version }}" != "${{ steps.plugin.outputs.plugin_version }}" ]; then
-            echo "❌ Version mismatch! readme.txt = ${{ steps.readme.outputs.readme_version }}, plugin.php = ${{ steps.plugin.outputs.plugin_version }}"
+            echo "❌ Version mismatch! readme.txt = ${{ steps.readme.outputs.readme_version }}, bizzio-sync-for-woocommerce.php = ${{ steps.plugin.outputs.plugin_version }}"
             exit 1
           fi
 
