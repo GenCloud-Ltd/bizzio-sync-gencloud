@@ -86,7 +86,10 @@
 								// Continue processing next batch
 								setTimeout( processProductBatch, 1000 ); // Wait 1 second before next batch
 							} else if (response.data.status === 'completed') {
-								$( '#bizzio-product-import-status' ).html( '<p style="color: green;">' + response.data.message + '</p>' );
+								var final_message = '<p style="color: green;">' + response.data.message + '</p>' +
+									'<p>Total Imported: ' + response.data.imported + ' (Created: ' + response.data.created + ', Updated: ' + response.data.updated + ')</p>' +
+									'<p>Total Failed: ' + response.data.failed + '</p>';
+								$( '#bizzio-product-import-status' ).html( final_message );
 								$( '#bizzio-import-products' ).prop( 'disabled', false ).text( 'Import Products' );
 							}
 						} else {
@@ -113,6 +116,8 @@
 							var progress       = response.data.progress;
 							var total_articles = response.data.total_articles;
 							var imported       = response.data.imported;
+							var created        = response.data.created;
+							var updated        = response.data.updated;
 							var failed         = response.data.failed;
 							var status         = response.data.status;
 
@@ -122,7 +127,8 @@
 							$( '#bizzio-product-import-status' ).html(
 								'<p>Status: ' + status + '</p>' +
 								'<p>Processed: ' + progress + ' / ' + total_articles + '</p>' +
-								'<p>Imported: ' + imported + '</p>' +
+								'<p>Imported: ' + imported + ' (Created: ' + created + ', Updated: ' + updated + ')</p>' +
+								'<p>Updated: ' + updated + '</p>' +
 								'<p>Failed: ' + failed + '</p>'
 							);
 
