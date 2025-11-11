@@ -59,6 +59,26 @@ define( 'BIZZIO_SYNC_GENCLOUD_DEBUG_LOG', true );
 
 Debug information will be logged to your WordPress debug log file (usually `wp-content/debug.log`).
 
+## Development & Release Process
+
+### Local Development
+
+```bash
+# Install development dependencies
+composer install
+
+# Run PHPCS lint
+vendor/bin/phpcs
+
+# Auto-fix code style
+vendor/bin/phpcbf
+```
+
+**Coding Standards:**
+- WordPress-Core, WordPress-Extra, WordPress-Docs
+- PHPCompatibility 8.1-8.3
+- See `phpcs.xml.dist` for full configuration
+
 ## Support
 
 For any issues or questions, please refer to the plugin documentation or contact the developer.

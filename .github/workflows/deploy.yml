@@ -15,89 +15,138 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        continue-on-error: false
         with:
           # Винаги checkout от main branch, независимо от тага
-          ref: main
+          fetch-depth: 0
        
-      - name: Install PHP and Composer
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.1
-          tools: composer
-       
-      - name: Install and Configure PHPCS
+      - name: Validate plugin structure
+        continue-on-error: false
         run: |
-          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
-          composer global require dealerdirect/phpcodesniffer-composer-installer
-          composer global require squizlabs/php_codesniffer
-          composer global require wp-coding-standards/wpcs
-          /home/runner/.composer/vendor/bin/phpcs --config-set installed_paths \
-          /home/runner/.composer/vendor/wp-coding-standards/wpcs,\
-          /home/runner/.composer/vendor/phpcsstandards/phpcsutils,\
-          /home/runner/.composer/vendor/phpcsstandards/phpcsextra
+          echo "=== Validating Plugin Structure ==="
+          
+          if [ ! -f "bizzio-sync-for-woocommerce/bizzio-sync-for-woocommerce.php" ]; then
+            echo "❌ Main plugin file not found!"
+            exit 1
+          fi
+          
+          if [ ! -f "bizzio-sync-for-woocommerce/readme.txt" ]; then
+            echo "❌ readme.txt not found!"
+            exit 1
+          fi
+          
+          echo "✅ Plugin structure valid"
        
-      - name: Auto-fix code style issues (continue even if some remain)
-        run: /home/runner/.composer/vendor/bin/phpcbf ./bizzio-sync-for-woocommerce || true
-       
-      - name: Show remaining PHPCS issues
+      - name: Extract version from files
+        id: version
+        continue-on-error: false
         run: |
-          /home/runner/.composer/vendor/bin/phpcs ./bizzio-sync-for-woocommerce || true
+          readme_version=$(grep -i "Stable tag" bizzio-sync-for-woocommerce/readme.txt | awk '{print $3}' | tr -d '\r')
+          plugin_version=$(grep -i "Version:" bizzio-sync-for-woocommerce/bizzio-sync-for-woocommerce.php | head -n 1 | awk '{print $2}' | tr -d '\r')
+          
+          echo "readme_version=$readme_version" >> $GITHUB_OUTPUT
+          echo "plugin_version=$plugin_version" >> $GITHUB_OUTPUT
+          
+          echo "Version from readme.txt: $readme_version"
+          echo "Version from plugin file: $plugin_version"
+          
+          if [ "$readme_version" != "$plugin_version" ]; then
+            echo "❌ Version mismatch detected!"
+            exit 1
+          fi
+          
+          echo "✅ Versions match: $readme_version"
+          echo "✅ Versions match: $readme_version"
        
       - name: Build plugin ZIP
+        continue-on-error: false
         run: |
           mkdir -p build
           
-          # Debug: показва от кой branch/commit строим
           echo "=== Build Information ==="
           echo "Git Branch: $(git branch --show-current)"
           echo "Git Commit: $(git rev-parse HEAD)"
           echo "Git Tag: $(git describe --tags --exact-match 2>/dev/null || echo 'No tag')"
+          echo "Plugin Version: ${{ steps.version.outputs.readme_version }}"
           echo "========================="
           
-          # Създаваме ZIP с папката bizzio-sync-for-woocommerce и цялото й съдържание
-          zip -r build/${{ env.PLUGIN_SLUG }}.zip bizzio-sync-for-woocommerce/ -x \
-
-            "bizzio-sync-for-woocommerce/.git*" \
-            "bizzio-sync-for-woocommerce/.DS_Store" \
-            "bizzio-sync-for-woocommerce/node_modules/*"
+          # Създаваме ZIP с папката bizzio-sync-for-woocommerce
+          cd bizzio-sync-for-woocommerce
+          zip -r ../build/${{ env.PLUGIN_SLUG }}.zip . -x \
+            ".git*" \
+            ".DS_Store" \
+            "*.log" \
+            "node_modules/*" \
+            "tests/*"
+          cd ..
           
-          # Debug: показва структурата на архива
-          echo "=== ZIP Archive Contents ==="
-          unzip -l build/${{ env.PLUGIN_SLUG }}.zip | head -20
+          # Проверка дали ZIP е създаден успешно
+          if [ ! -f "build/${{ env.PLUGIN_SLUG }}.zip" ]; then
+            echo "❌ Failed to create ZIP file!"
+            exit 1
+          fi
+          
+          # Показваме структурата
+          echo "=== ZIP Archive Contents (first 30 files) ==="
+          unzip -l build/${{ env.PLUGIN_SLUG }}.zip | head -30
+          echo ""
           echo "=== Build Directory ==="
-          ls -la build/
+          ls -lh build/
+          echo "✅ ZIP created successfully"
        
-      - name: Upload ZIP artifact (CI)
+      - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
+        continue-on-error: false
         with:
-          name: ${{ env.PLUGIN_SLUG }}
+          name: ${{ env.PLUGIN_SLUG }}-${{ steps.version.outputs.readme_version }}
           path: build/${{ env.PLUGIN_SLUG }}.zip
+          retention-days: 90
        
-      # Поправен upload към GitHub Release с презапис
-      - name: Upload ZIP to GitHub Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
+        continue-on-error: true
         with:
           files: build/${{ env.PLUGIN_SLUG }}.zip
           name: Release ${{ github.ref_name }}
           body: |
-
-            WordPress Plugin Release ${{ github.ref_name }}
-            Built from latest main branch.
+            ## WordPress Plugin Release ${{ steps.version.outputs.readme_version }}
             
-            ## Download
-            - [bizzio-sync-for-woocommerce.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bizzio-sync-for-woocommerce.zip) - Plugin ZIP file
+            Built from `main` branch at commit `${{ github.sha }}`
+            
+            ### Download
+            - [bizzio-sync-for-woocommerce.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bizzio-sync-for-woocommerce.zip)
+            
+            ### Installation
+            1. Download the ZIP file above
+            2. Go to WordPress Admin → Plugins → Add New → Upload Plugin
+            3. Upload the ZIP file and activate
+            
+            ### Changelog
+            See [readme.txt](https://github.com/${{ github.repository }}/blob/main/bizzio-sync-for-woocommerce/readme.txt#L1) for full changelog.
           draft: false
           prerelease: false
-          # Презаписва съществуващия release ако има такъв
           make_latest: true
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
        
-      # Optional: Deploy to WordPress.org (uncomment when ready)
-      # - name: Deploy to WordPress.org
-      #   if: ${{ secrets.WPORG_USERNAME != '' }}
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Plugin:** ${{ env.PLUGIN_SLUG }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ steps.version.outputs.readme_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "build/${{ env.PLUGIN_SLUG }}.zip" ]; then
+            size=$(ls -lh build/${{ env.PLUGIN_SLUG }}.zip | awk '{print $5}')
+            echo "- **ZIP Size:** $size" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Status:** Build successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Build failed" >> $GITHUB_STEP_SUMMARY
+          fi
       #   uses: 10up/action-wordpress-plugin-deploy@v2
       #   with:
       #     plugin_slug: ${{ env.PLUGIN_SLUG }}

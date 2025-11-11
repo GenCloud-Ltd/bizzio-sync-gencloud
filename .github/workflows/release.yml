@@ -1,0 +1,195 @@
+name: Complete Release Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy-to-wporg:
+        description: 'Deploy to WordPress.org SVN'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  validate:
+    name: Validate Plugin
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.versions.outputs.readme_version }}
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      
+      - name: Validate structure
+        run: |
+          echo "🔍 Validating plugin structure..."
+          
+          required_files=(
+            "bizzio-sync-for-woocommerce/bizzio-sync-for-woocommerce.php"
+            "bizzio-sync-for-woocommerce/readme.txt"
+            "bizzio-sync-for-woocommerce/includes/class-bizzio-sync-gencloud.php"
+            "bizzio-sync-for-woocommerce/admin/class-bizzio-sync-gencloud-admin.php"
+          )
+          
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing: $file"
+              exit 1
+            fi
+            echo "✅ Found: $file"
+          done
+      
+      - name: Extract versions
+        id: versions
+        run: |
+          readme_version=$(grep -i "Stable tag:" bizzio-sync-for-woocommerce/readme.txt | awk '{print $3}' | tr -d '\r\n ')
+          plugin_version=$(grep -i "Version:" bizzio-sync-for-woocommerce/bizzio-sync-for-woocommerce.php | head -n 1 | awk '{print $2}' | tr -d '\r\n ')
+          
+          echo "readme_version=$readme_version" >> $GITHUB_OUTPUT
+          echo "plugin_version=$plugin_version" >> $GITHUB_OUTPUT
+          
+          echo "📋 readme.txt: $readme_version"
+          echo "📋 Plugin file: $plugin_version"
+          
+          if [ "$readme_version" != "$plugin_version" ]; then
+            echo "❌ Version mismatch!"
+            exit 1
+          fi
+          
+          echo "✅ Version validated: $readme_version"
+
+  build:
+    name: Build Plugin ZIP
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      
+      - name: Build ZIP
+        run: |
+          echo "📦 Building plugin ZIP..."
+          mkdir -p build
+          
+          cd bizzio-sync-for-woocommerce
+          zip -r ../build/bizzio-sync-for-woocommerce.zip . \
+            -x ".git*" ".DS_Store" "*.log" "node_modules/*" "tests/*"
+          cd ..
+          
+          ls -lh build/
+          echo "✅ ZIP created"
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip-${{ needs.validate.outputs.version }}
+          path: build/bizzio-sync-for-woocommerce.zip
+          retention-days: 90
+
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate, build]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-zip-${{ needs.validate.outputs.version }}
+          path: ./
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bizzio-sync-for-woocommerce.zip
+          tag_name: ${{ github.ref_name != '' && github.ref_name || format('v{0}', needs.validate.outputs.version) }}
+          name: Release v${{ needs.validate.outputs.version }}
+          body: |
+            ## Bizzio Sync for WooCommerce v${{ needs.validate.outputs.version }}
+            
+            ### Download
+            - [bizzio-sync-for-woocommerce.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bizzio-sync-for-woocommerce.zip)
+            
+            ### Installation
+            1. Download the ZIP file
+            2. WordPress Admin → Plugins → Add New → Upload Plugin
+            3. Upload and activate
+            
+            ### Support
+            - [Documentation](https://github.com/${{ github.repository }})
+            - [WordPress.org](https://wordpress.org/plugins/bizzio-sync-for-woocommerce/)
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  wporg-deploy:
+    name: Deploy to WordPress.org
+    runs-on: ubuntu-latest
+    needs: [validate, build]
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.deploy-to-wporg == 'true') ||
+      (startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push')
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      
+      - name: Deploy to WP.org
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          generate-zip: false
+        env:
+          SLUG: bizzio-sync-for-woocommerce
+          BUILD_DIR: bizzio-sync-for-woocommerce
+          VERSION: ${{ needs.validate.outputs.version }}
+          SVN_USERNAME: ${{ secrets.WP_SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.WP_SVN_PASSWORD }}
+      
+      - name: Notify success
+        if: success()
+        run: |
+          echo "✅ Successfully deployed to WordPress.org"
+          echo "Plugin URL: https://wordpress.org/plugins/bizzio-sync-for-woocommerce/"
+
+  summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs: [validate, build, github-release, wporg-deploy]
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🚀 Release Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ needs.validate.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Plugin:** bizzio-sync-for-woocommerce" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pipeline Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Validate: ${{ needs.validate.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub Release: ${{ needs.github-release.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- WordPress.org Deploy: ${{ needs.wporg-deploy.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [GitHub Releases](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
+          echo "- [WordPress.org Plugin](https://wordpress.org/plugins/bizzio-sync-for-woocommerce/)" >> $GITHUB_STEP_SUMMARY
