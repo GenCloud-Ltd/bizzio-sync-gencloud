@@ -12,3 +12,6 @@ Bizzio E-commerce API.pdf
 .phpcs-cache
 .phpstan-cache
 wp-cli.local.yml
+
+# Local editor/agent settings
+.claude/settings.local.json
