@@ -1,0 +1,112 @@
+# Quality gate for the free WP.org plugin. Runs on every push/PR and is called by release.yml,
+# so nothing is built or deployed unless all of these pass.
+name: QA
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLUGIN_SLUG: bizzio-sync-for-woocommerce
+
+jobs:
+  versions:
+    name: Version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+
+      - name: Plugin header, readme, constants and changelog agree
+        run: |
+          tag=""
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then tag="${GITHUB_REF_NAME}"; fi
+          php bin/check-versions.php "$tag"
+
+  php-lint:
+    name: PHP ${{ matrix.php }} syntax
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # readme.txt "Requires PHP: 7.4" up to the newest supported release.
+        php: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4", "8.5"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: php -l
+        run: |
+          failed=0
+          while IFS= read -r -d '' file; do
+            out=$(php -l "$file" 2>&1) || { echo "$out"; failed=1; }
+          done < <(find "$PLUGIN_SLUG" -name '*.php' -print0)
+          exit "$failed"
+
+  static-analysis:
+    name: PHPCS (WPCS) + PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+          tools: cs2pr
+
+      - uses: ramsey/composer-install@v3
+
+      - name: PHPCS – WordPress Coding Standards + PHPCompatibilityWP
+        run: vendor/bin/phpcs --no-cache --report-full --report-checkstyle=./phpcs-report.xml
+
+      - name: PHPCS annotations
+        if: ${{ always() && hashFiles('phpcs-report.xml') != '' }}
+        run: cs2pr ./phpcs-report.xml --graceful-warnings
+
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse --memory-limit=2G --no-progress --error-format=github
+
+  plugin-check:
+    name: Plugin Check (WP.org)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+
+      # Check exactly what will be shipped: the ZIP built with .distignore, not the repo folder.
+      - name: Build distributable
+        run: |
+          php bin/build-zip.php "$PLUGIN_SLUG" build
+          mkdir -p build/dist
+          unzip -q "build/$PLUGIN_SLUG.zip" -d build/dist
+
+      - name: Run Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: build/dist/${{ env.PLUGIN_SLUG }}
+          include-experimental: true
+          strict: true

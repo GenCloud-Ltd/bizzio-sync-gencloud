@@ -1,5 +1,19 @@
 <?php
 /**
+ * Register all actions and filters for the plugin.
+ *
+ * @link       https://gencloud.bg
+ * @since      1.0.0
+ *
+ * @package    Bizzio_Sync_Gencloud
+ * @subpackage Bizzio_Sync_Gencloud/includes
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
  * A class that is responsible for registering all of the plugin's hooks with WordPress.
  *
  * @since      1.0.0
@@ -73,8 +87,8 @@ class Bizzio_Sync_Gencloud_Loader {
 	 *
 	 * @since    1.0.0
 	 * @access   private
-	 * @param    array  $hooksThe collection of hooks that is being registered (that is, actions or filters).
-	 * @param    string $hook The name of the WordPress filter that is being registered.
+	 * @param    array  $hooks            The collection of hooks that is being registered (that is, actions or filters).
+	 * @param    string $hook             The name of the WordPress filter that is being registered.
 	 * @param    object $component        A reference to the instance of the object on which the filter is defined.
 	 * @param    string $callback         The name of the function definition on the $component.
 	 * @param    int    $priority         The priority at which the function should be executed.

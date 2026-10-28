@@ -14,21 +14,22 @@
  * @wordpress-plugin
  * Plugin Name:       Bizzio Sync for WooCommerce
  * Description:       Sync products and categories from Bizzio ERP to WooCommerce store.
- * Version:           1.1.0
- * Author:gencloud
+ * Version:           1.1.1
+ * Requires at least: 6.5
+ * Requires PHP:      7.4
+ * Author:            gencloud
  * Author URI:        https://gencloud.bg/
- * License:           GPL-2.0+
- * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       bizzio-sync-for-woocommerce
- * Requires Plugins: woocommerce
+ * Requires Plugins:  woocommerce
  *
- * WC requires at least: 8.3.0
- * WC tested up to: 10.1.2
+ * WC requires at least: 8.3
+ * WC tested up to:      11.2
  */
 
 // If this file is called directly, abort.
 if ( ! defined( 'ABSPATH' ) ) {
-	// phpcs:ignore Generic.PHP.ForbiddenFunctions.FoundWithAlternative
 	exit;
 }
 
@@ -52,7 +53,7 @@ add_action(
  *
  * @since 1.0.0
  */
-define( 'BIZZIO_SYNC_GENCLOUD_VERSION', '1.1.0' );
+define( 'BIZZIO_SYNC_GENCLOUD_VERSION', '1.1.1' );
 
 /**
  * Define BIZZIO_SYNC_GENCLOUD_DEBUG_LOG to true in wp-config.php to enable full debug logging.

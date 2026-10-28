@@ -8,6 +8,20 @@
  * @package    Bizzio_Sync_Gencloud
  * @subpackage Bizzio_Sync_Gencloud/includes/api
  */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Property names mirror the Bizzio SOAP schema.
+
+/**
+ * The GetSiteGroups API class.
+ *
+ * @since      1.1.0
+ * @package    Bizzio_Sync_Gencloud
+ * @subpackage Bizzio_Sync_Gencloud/includes/api
+ */
 class Bizzio_Sync_Gencloud_Api_Get_Site_Groups extends Bizzio_Sync_Gencloud_Api_Client {
 
 	/**
@@ -21,7 +35,7 @@ class Bizzio_Sync_Gencloud_Api_Get_Site_Groups extends Bizzio_Sync_Gencloud_Api_
 		$soap_action  = 'http://tempuri.org/IRiznShopExtService/GetSiteGroups';
 		$request_body = $this->build_get_site_groups_request_body( $with_files );
 
-		$response = $this->_make_soap_request( $soap_action, $request_body );
+		$response = $this->make_soap_request( $soap_action, $request_body );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -34,7 +48,7 @@ class Bizzio_Sync_Gencloud_Api_Get_Site_Groups extends Bizzio_Sync_Gencloud_Api_
 			return new WP_Error( 'bizzio_xml_error', __( 'Failed to parse XML response for categories.', 'bizzio-sync-for-woocommerce' ) );
 		}
 
-		$response_element = $this->_process_bizzio_response( $xml, 'categories' );
+		$response_element = $this->process_bizzio_response( $xml, 'categories' );
 
 		if ( is_wp_error( $response_element ) ) {
 			return $response_element;
@@ -53,11 +67,17 @@ class Bizzio_Sync_Gencloud_Api_Get_Site_Groups extends Bizzio_Sync_Gencloud_Api_
 		$soap_action  = 'http://tempuri.org/IRiznShopExtService/GetSiteGroups';
 		$request_body = $this->build_get_site_groups_request_body( false );
 
-		$response = $this->_make_soap_request( $soap_action, $request_body );
+		$response = $this->make_soap_request( $soap_action, $request_body );
 
 		if ( is_wp_error( $response ) ) {
-			/* translators: %s: error message */
-			return new WP_Error( 'connection_failed', sprintf( esc_html__( 'Connection test failed: %s', 'bizzio-sync-for-woocommerce' ), $response->get_error_message() ) );
+			return new WP_Error(
+				'connection_failed',
+				sprintf(
+					/* translators: %s: error message */
+					esc_html__( 'Connection test failed: %s', 'bizzio-sync-for-woocommerce' ),
+					esc_html( $response->get_error_message() )
+				)
+			);
 		}
 
 		$body = wp_remote_retrieve_body( $response );
@@ -67,7 +87,7 @@ class Bizzio_Sync_Gencloud_Api_Get_Site_Groups extends Bizzio_Sync_Gencloud_Api_
 			return new WP_Error( 'xml_parsing_failed', esc_html__( 'Connection test failed: Failed to parse XML response.', 'bizzio-sync-for-woocommerce' ) );
 		}
 
-		$result = $this->_process_bizzio_response( $xml, 'connection_test' );
+		$result = $this->process_bizzio_response( $xml, 'connection_test' );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -79,34 +99,25 @@ class Bizzio_Sync_Gencloud_Api_Get_Site_Groups extends Bizzio_Sync_Gencloud_Api_
 	/**
 	 * Build the GetSiteGroupsRequest XML body.
 	 *
-	 * @since    1.2.0
+	 * @since    1.1.0
 	 * @param    bool $with_files Whether to include files.
 	 * @return   string The XML request body.
 	 */
 	private function build_get_site_groups_request_body( $with_files ) {
 		$is_files = $with_files ? 'true' : 'false';
 
-		return '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/" xmlns:biz="http://schemas.datacontract.org/2004/07/Bizzio.Srv.Extensions.RiznShop" xmlns:arr="http://schemas.microsoft.com/2003/10/Serialization/Arrays">
-			<soapenv:Header>
-				<tem:Authentication xmlns:tem="http://tempuri.org/">
-					<biz:Database xmlns:biz="http://schemas.datacontract.org/2004/07/Bizzio.Srv.Extensions.RiznShop">' . $this->api_database . '</biz:Database>
-					<biz:Username xmlns:biz="http://schemas.datacontract.org/2004/07/Bizzio.Srv.Extensions.RiznShop">' . $this->api_username . '</biz:Username>
-					<biz:Password xmlns:biz="http://schemas.datacontract.org/2004/07/Bizzio.Srv.Extensions.RiznShop">' . $this->api_password . '</biz:Password>
-				</tem:Authentication>
-			</soapenv:Header>
-			<soapenv:Body>
-				<tem:GetSiteGroupsRequest xmlns:tem="http://tempuri.org/">
-					<tem:ID_Site>' . $this->id_site . '</tem:ID_Site>
+		return $this->build_envelope(
+			'<tem:GetSiteGroupsRequest xmlns:tem="http://tempuri.org/">
+					<tem:ID_Site>' . esc_xml( $this->id_site ) . '</tem:ID_Site>
 					<tem:IsFiles>' . $is_files . '</tem:IsFiles>
-				</tem:GetSiteGroupsRequest>
-			</soapenv:Body>
-		</soapenv:Envelope>';
+				</tem:GetSiteGroupsRequest>'
+		);
 	}
 
 	/**
 	 * Parse the GetSiteGroups XML response into a structured array.
 	 *
-	 * @since    1.2.0
+	 * @since    1.1.0
 	 * @param    SimpleXMLElement $xml              The full XML response.
 	 * @param    SimpleXMLElement $response_element The GetSiteGroupsResponse element.
 	 * @return   array Array of parsed categories.

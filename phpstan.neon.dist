@@ -1,0 +1,23 @@
+# PHPStan for the free plugin. WordPress stubs come from szepeviktor/phpstan-wordpress
+# (auto-registered by phpstan/extension-installer); WooCommerce stubs are added below.
+parameters:
+	level: 5
+	phpVersion:
+		min: 70400
+		max: 80599
+	paths:
+		- bizzio-sync-for-woocommerce
+	excludePaths:
+		- bizzio-sync-for-woocommerce/vendor (?)
+		- bizzio-sync-for-woocommerce/build (?)
+	bootstrapFiles:
+		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+	dynamicConstantNames:
+		- BIZZIO_SYNC_GENCLOUD_DEBUG_LOG
+	tmpDir: .phpstan-cache
+	ignoreErrors:
+		# Admin view templates are included from Bizzio_Sync_Gencloud_Admin methods, where $this is defined.
+		-
+			identifier: variable.undefined
+			message: '#^Variable \$this might not be defined\.$#'
+			path: bizzio-sync-for-woocommerce/admin/partials/*

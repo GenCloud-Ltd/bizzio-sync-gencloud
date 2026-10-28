@@ -1,0 +1,28 @@
+# Paths (relative to the plugin dir) excluded from the distributable ZIP and the WP.org SVN deploy
+# Read by bin/build-zip.php; CI deploys the extracted ZIP, so this file defines what reaches WP.org.
+/.git
+/.github
+/.vscode
+/.wordpress-org
+/node_modules
+/vendor
+/tests
+/build
+.distignore
+.gitignore
+.gitattributes
+.editorconfig
+.DS_Store
+Thumbs.db
+README.md
+composer.json
+composer.lock
+package.json
+package-lock.json
+phpcs.xml
+phpcs.xml.dist
+.phpcs.xml.dist
+phpstan.neon
+phpstan.neon.dist
+*.log
+*.map

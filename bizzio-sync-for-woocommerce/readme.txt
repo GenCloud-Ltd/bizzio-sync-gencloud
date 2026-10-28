@@ -1,9 +1,9 @@
 === Bizzio Sync for WooCommerce ===
 Contributors: gencloud
 Tags: woocommerce, bizzio, erp, sync, import
-Requires at least: 5.0
-Tested up to: 6.8
-Stable tag: 1.1.0
+Requires at least: 6.5
+Tested up to: 7.1
+Stable tag: 1.1.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -24,17 +24,18 @@ Note: This plugin requires valid API credentials provided by GenCloud Ltd. and a
 
 == External Services ==
 
-This plugin communicates with the Bizzio ERP system (by GenCloud Ltd.) to fetch product and category data into WooCommerce.
+This plugin connects to the Bizzio ERP API, a service operated by GenCloud Ltd., to import product and category data into WooCommerce. The plugin cannot work without it.
 
-It use only the provided authentication credentials (Database, Username, Password, and Site ID) when the store administrator initiates synchronization.
+* **What is sent:** the API credentials entered on the settings page (Database, Username, Password and Site ID) and, for product imports, the store currency code.
+* **When:** only when a store administrator clicks "Test Connection", "Import Categories" or "Import Products". Nothing is sent automatically, in the background, or on front-end page views.
+* **Where:** `https://bizzio.gencloud.bg/Services/Extensions/RiznShopExtService.svc`. Product and category images returned by the API are downloaded from the image addresses it provides.
+* **What is not sent:** no customer, order, visitor or other site data.
 
-No visitor or site data is shared. 
-
-The Bizzio ERP service is operated by GenCloud Ltd. — https://www.gencloud.bg
+The Bizzio ERP service is provided by GenCloud Ltd. — https://gencloud.bg/ (contact: web@gencloud.bg).
 
 == Installation ==
 
-1.  Upload the `bizzio-sync-gencloud` folder to the `/wp-content/plugins/` directory.
+1.  Upload the `bizzio-sync-for-woocommerce` folder to the `/wp-content/plugins/` directory.
 2.  Activate the plugin through the 'Plugins' menu in WordPress.
 3.  Go to the **Bizzio Sync** menu in your WordPress admin area.
 4.  Enter your Bizzio API credentials in the **Settings** tab.
@@ -58,6 +59,18 @@ For support, please contact us at [web@gencloud.bg](mailto:web@gencloud.bg).
 3.  The category import page.
 
 == Changelog ==
+
+= 1.1.1 - 2026-10-28 =
+* Tested up to WordPress 7.1 and WooCommerce 11.2. Requires WordPress 6.5+ (needed for the "Requires Plugins" header).
+* Fix: saving the settings no longer clears the stored API password when the password field is left empty.
+* Fix: API credentials and Site ID are XML-escaped, so values containing &, < or > no longer break requests.
+* Fix: category images are reused instead of being downloaded again on every import; temporary files are removed when an image import fails.
+* Fix: "Manage stock" is set correctly on imported products.
+* Security: messages and HTML received from the API are escaped/sanitized before display or storage.
+* Product prices are requested in the store currency.
+* Large import queues are no longer autoloaded on every page load.
+* Uninstall now also removes the created/updated counters.
+* Code now passes WordPress Coding Standards, PHPStan and Plugin Check.
 
 = 1.1.0 - 2025-11-11 =
 * Major code refactoring for improved architecture and extensibility.
