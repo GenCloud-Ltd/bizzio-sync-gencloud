@@ -5,18 +5,22 @@
  * Handles all image-related operations for products and categories.
  *
  * @link       https://gencloud.bg
- * @since      1.2.0
+ * @since      1.1.0
  *
  * @package    Bizzio_Sync_Gencloud
  * @subpackage Bizzio_Sync_Gencloud/includes
  */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
  * The image helper class.
  *
  * This class defines all image processing functionality.
  *
- * @since      1.2.0
+ * @since      1.1.0
  * @package    Bizzio_Sync_Gencloud
  * @subpackage Bizzio_Sync_Gencloud/includes
  * @author     gencloud <web@gencloud.bg>
@@ -24,24 +28,23 @@
 class Bizzio_Sync_Gencloud_Image_Helper {
 
 	/**
-	 * Find an attachment ID by the Bizzio image ID stored in post meta.
+	 * Find an attachment ID by a meta value stored on the attachment.
 	 *
-	 * @since    1.2.0
-	 * @param    string $bizzio_id The Bizzio image ID.
+	 * @since    1.1.1
+	 * @param    string $meta_key   The attachment meta key.
+	 * @param    string $meta_value The meta value to look for.
 	 * @return   int|null The attachment ID if found, otherwise null.
 	 */
-	public static function find_attachment_by_bizzio_id( $bizzio_id ) {
+	private static function find_attachment_by_meta( $meta_key, $meta_value ) {
 		global $wpdb;
 
-		// Use direct database query for better performance.
+		// Direct query: a meta_query through WP_Query is far slower for this exact-match lookup on large media libraries.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$attachment_id = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT post_id FROM {$wpdb->postmeta} 
-				WHERE meta_key = '_bizzio_image_id' 
-				AND meta_value = %s 
-				LIMIT 1",
-				$bizzio_id
+				"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s LIMIT 1",
+				$meta_key,
+				$meta_value
 			)
 		);
 
@@ -49,23 +52,43 @@ class Bizzio_Sync_Gencloud_Image_Helper {
 	}
 
 	/**
-	 * Sideloads an image from Bizzio, attaches it to a product, and sets meta data.
+	 * Find an attachment ID by the Bizzio image ID stored in post meta.
 	 *
-	 * @since    1.2.0
-	 * @param    int   $product_id The product ID.
-	 * @param    array $image_data Array containing image 'ID', 'Name', and 'Uri'.
-	 * @return   int|WP_Error The new attachment ID or a WP_Error on failure.
+	 * @since    1.1.0
+	 * @param    string $bizzio_id The Bizzio image ID.
+	 * @return   int|null The attachment ID if found, otherwise null.
 	 */
-	public static function sideload_bizzio_image( $product_id, $image_data ) {
+	public static function find_attachment_by_bizzio_id( $bizzio_id ) {
+		return self::find_attachment_by_meta( '_bizzio_image_id', (string) $bizzio_id );
+	}
+
+	/**
+	 * Load the WordPress media functions needed for sideloading outside of wp-admin requests.
+	 *
+	 * @since    1.1.1
+	 * @return   void
+	 */
+	private static function load_media_functions() {
 		if ( ! function_exists( 'media_handle_sideload' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/image.php';
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			require_once ABSPATH . 'wp-admin/includes/media.php';
 		}
+	}
 
-		$image_url = $image_data['Uri'];
+	/**
+	 * Download a remote image into the media library.
+	 *
+	 * @since    1.1.1
+	 * @param    string $image_url The remote image URL.
+	 * @param    string $file_name The file name to store the image under.
+	 * @param    int    $parent_id The post the attachment belongs to (0 for none).
+	 * @return   int|WP_Error The new attachment ID or a WP_Error on failure.
+	 */
+	private static function sideload( $image_url, $file_name, $parent_id ) {
+		self::load_media_functions();
 
-		if ( empty( $image_url ) || ! filter_var( $image_url, FILTER_VALIDATE_URL ) ) {
+		if ( empty( $image_url ) || ! wp_http_validate_url( $image_url ) ) {
 			return new WP_Error( 'invalid_image_url', __( 'Invalid image URL provided.', 'bizzio-sync-for-woocommerce' ) );
 		}
 
@@ -75,19 +98,35 @@ class Bizzio_Sync_Gencloud_Image_Helper {
 		}
 
 		$file_array = array(
-			'name'     => basename( $image_data['Name'] ),
+			'name'     => sanitize_file_name( basename( $file_name ) ),
 			'tmp_name' => $tmp,
 		);
 
-		$attach_id = media_handle_sideload( $file_array, $product_id );
+		$attach_id = media_handle_sideload( $file_array, $parent_id );
 
 		if ( is_wp_error( $attach_id ) ) {
-			wp_delete_file( $file_array['tmp_name'] );
-			return $attach_id;
+			wp_delete_file( $tmp );
 		}
 
-		// Store the Bizzio image ID to prevent duplicates.
-		update_post_meta( $attach_id, '_bizzio_image_id', $image_data['ID'] );
+		return $attach_id;
+	}
+
+	/**
+	 * Sideloads an image from Bizzio, attaches it to a product, and sets meta data.
+	 *
+	 * @since    1.1.0
+	 * @param    int   $product_id The product ID.
+	 * @param    array $image_data Array containing image 'ID', 'Name', and 'Uri'.
+	 * @return   int|WP_Error The new attachment ID or a WP_Error on failure.
+	 */
+	public static function sideload_bizzio_image( $product_id, $image_data ) {
+		$file_name = ! empty( $image_data['Name'] ) ? $image_data['Name'] : wp_parse_url( $image_data['Uri'], PHP_URL_PATH );
+		$attach_id = self::sideload( $image_data['Uri'], (string) $file_name, (int) $product_id );
+
+		if ( ! is_wp_error( $attach_id ) ) {
+			// Store the Bizzio image ID to prevent duplicates.
+			update_post_meta( $attach_id, '_bizzio_image_id', $image_data['ID'] );
+		}
 
 		return $attach_id;
 	}
@@ -95,7 +134,7 @@ class Bizzio_Sync_Gencloud_Image_Helper {
 	/**
 	 * Process and attach images to a product.
 	 *
-	 * @since    1.2.0
+	 * @since    1.1.0
 	 * @param    int   $product_id The product ID.
 	 * @param    array $files      Array of file data from the API.
 	 * @return   void
@@ -116,15 +155,13 @@ class Bizzio_Sync_Gencloud_Image_Helper {
 				continue;
 			}
 
-			// Check if image already exists.
+			// Reuse the attachment if this Bizzio image was imported before.
 			$attach_id = self::find_attachment_by_bizzio_id( $file_data['ID'] );
 
-			// If not, sideload it.
 			if ( ! $attach_id ) {
 				$attach_id = self::sideload_bizzio_image( $product_id, $file_data );
 			}
 
-			// If we have a valid attachment ID, add it to our gallery array.
 			if ( ! is_wp_error( $attach_id ) ) {
 				$gallery_ids[] = $attach_id;
 			}
@@ -148,45 +185,31 @@ class Bizzio_Sync_Gencloud_Image_Helper {
 	/**
 	 * Set WooCommerce category thumbnail from a URL.
 	 *
-	 * @since    1.2.0
+	 * The source URL is stored on the attachment, so re-running the import reuses the
+	 * existing attachment instead of downloading the same image again.
+	 *
+	 * @since    1.1.0
 	 * @param    int    $term_id    The term ID of the category.
 	 * @param    string $image_url  The URL of the image.
 	 * @return   void
 	 */
 	public static function set_category_thumbnail( $term_id, $image_url ) {
-		if ( ! function_exists( 'media_handle_sideload' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/image.php';
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-			require_once ABSPATH . 'wp-admin/includes/media.php';
-		}
-
-		// Check if the image URL is valid.
-		if ( empty( $image_url ) || ! filter_var( $image_url, FILTER_VALIDATE_URL ) ) {
+		if ( empty( $image_url ) || ! wp_http_validate_url( $image_url ) ) {
 			return;
 		}
 
-		// Need to sideload the image.
-		$tmp = download_url( $image_url );
-		if ( is_wp_error( $tmp ) ) {
-			return;
+		$attach_id = self::find_attachment_by_meta( '_bizzio_image_url', $image_url );
+
+		if ( ! $attach_id ) {
+			$attach_id = self::sideload( $image_url, (string) wp_parse_url( $image_url, PHP_URL_PATH ), 0 );
+
+			if ( is_wp_error( $attach_id ) ) {
+				return;
+			}
+
+			update_post_meta( $attach_id, '_bizzio_image_url', $image_url );
 		}
 
-		$file_array = array(
-			'name'     => basename( $image_url ),
-			'tmp_name' => $tmp,
-		);
-
-		// If error storing temporarily, unlink.
-		if ( is_wp_error( $tmp ) ) {
-			wp_delete_file( $file_array['tmp_name'] );
-			$file_array['tmp_name'] = '';
-		}
-
-		// Do the validation and storage stuff.
-		$attach_id = media_handle_sideload( $file_array, 0 );
-
-		if ( ! is_wp_error( $attach_id ) ) {
-			update_term_meta( $term_id, 'thumbnail_id', $attach_id );
-		}
+		update_term_meta( $term_id, 'thumbnail_id', $attach_id );
 	}
 }

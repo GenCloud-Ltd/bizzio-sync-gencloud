@@ -1,5 +1,19 @@
 <?php
 /**
+ * The file that defines the core plugin class.
+ *
+ * @link       https://gencloud.bg
+ * @since      1.0.0
+ *
+ * @package    Bizzio_Sync_Gencloud
+ * @subpackage Bizzio_Sync_Gencloud/includes
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
  * The core plugin class.
  *
  * This is used to define internationalization, admin-specific hooks, and
@@ -56,7 +70,7 @@ class Bizzio_Sync_Gencloud {
 		if ( defined( 'BIZZIO_SYNC_GENCLOUD_VERSION' ) ) {
 			$this->version = BIZZIO_SYNC_GENCLOUD_VERSION;
 		} else {
-			$this->version = '1.1.0';
+			$this->version = '1.1.1';
 		}
 		$this->plugin_name = 'bizzio-sync-gencloud';
 

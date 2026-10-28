@@ -1,14 +1,8 @@
 <?php
-// If this file is called directly, abort.
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
-
 /**
- * Provide a admin area view for the plugin
+ * Admin view: Bizzio Sync categories import page.
  *
- * This file is used to markup the admin-facing aspects of the plugin.
+ * Included from Bizzio_Sync_Gencloud_Admin, so $this is the admin instance.
  *
  * @link       https://gencloud.bg
  * @since      1.0.0
@@ -16,6 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package    Bizzio_Sync_Gencloud
  * @subpackage Bizzio_Sync_Gencloud/admin/partials
  */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 ?>
 
 <div class="wrap">

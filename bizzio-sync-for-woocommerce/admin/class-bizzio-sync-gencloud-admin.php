@@ -9,6 +9,10 @@
  * @subpackage Bizzio_Sync_Gencloud/admin
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * The admin-specific functionality of the plugin.
  *
@@ -158,6 +162,11 @@ class Bizzio_Sync_Gencloud_Admin {
 		);
 	}
 
+	/**
+	 * Render the description of the API settings section.
+	 *
+	 * @since    1.0.0
+	 */
 	public function section_callback() {
 		echo '<p>' . esc_html__( 'Enter your Bizzio API credentials and settings below.', 'bizzio-sync-for-woocommerce' ) . '</p>';
 	}
@@ -217,13 +226,19 @@ class Bizzio_Sync_Gencloud_Admin {
 			);
 
 			$sanitize_callback = array( $this, 'sanitize_setting' );
-			if ( isset( $field['type'] ) && 'password' === $field['type'] ) {
+			if ( 'password' === $field['type'] ) {
 				$sanitize_callback = array( $this, 'sanitize_password' );
 			}
 			register_setting( $this->plugin_name, $field['uid'], array( 'sanitize_callback' => $sanitize_callback ) );
 		}
 	}
 
+	/**
+	 * Render a settings field.
+	 *
+	 * @since    1.0.0
+	 * @param    array $arguments Field arguments: uid, type, placeholder, helper.
+	 */
 	public function field_callback( $arguments ) {
 		$uid         = esc_attr( $arguments['uid'] );
 		$type        = esc_attr( isset( $arguments['type'] ) ? $arguments['type'] : 'text' );
@@ -287,12 +302,22 @@ class Bizzio_Sync_Gencloud_Admin {
 	/**
 	 * Sanitize a password field from user input.
 	 *
+	 * The field is always rendered empty, so an empty submission keeps the stored password
+	 * instead of wiping it. The value is not run through sanitize_text_field() because that
+	 * would alter valid password characters; it is XML-escaped when sent to the API.
+	 *
 	 * @since 1.0.2
-	 * @param string $input The input string.
-	 * @return string The sanitized string.
+	 * @param mixed $input The submitted value.
+	 * @return string The password to store.
 	 */
 	public function sanitize_password( $input ) {
-		return trim( $input );
+		$input = is_string( $input ) ? trim( $input ) : '';
+
+		if ( '' === $input ) {
+			return (string) get_option( 'bizzio_api_password', '' );
+		}
+
+		return $input;
 	}
 
 	/**
@@ -305,7 +330,7 @@ class Bizzio_Sync_Gencloud_Admin {
 		check_ajax_referer( 'bizzio_import_products_nonce', 'security' );
 
 		$api_client         = new Bizzio_Sync_Gencloud_Api_Get_Articles();
-		$articles_to_import = $api_client->fetch();
+		$articles_to_import = $api_client->fetch( array( 'currency' => get_woocommerce_currency() ) );
 
 		if ( is_wp_error( $articles_to_import ) ) {
 			wp_send_json_error(
@@ -319,7 +344,7 @@ class Bizzio_Sync_Gencloud_Admin {
 		$total_articles = count( $articles_to_import );
 
 		// Store articles and reset progress counters.
-		update_option( 'bizzio_sync_gencloud_articles_to_import', $articles_to_import );
+		update_option( 'bizzio_sync_gencloud_articles_to_import', $articles_to_import, false );
 		update_option( 'bizzio_sync_gencloud_total_articles', $total_articles );
 		update_option( 'bizzio_sync_gencloud_import_progress', 0 );
 		update_option( 'bizzio_sync_gencloud_imported_count', 0 );
@@ -383,7 +408,7 @@ class Bizzio_Sync_Gencloud_Admin {
 			$product_barcode     = $article_data['Barcode'];
 			$product_price       = $article_data['P_Sale'];
 			$product_qty         = $article_data['Qty'];
-			$product_description = $article_data['Description'];
+			$product_description = wp_kses_post( $article_data['Description'] );
 
 			// Check for existing product by SKU, which is more efficient and HPOS-compatible.
 			$product_id = wc_get_product_id_by_sku( $product_barcode );
@@ -398,7 +423,7 @@ class Bizzio_Sync_Gencloud_Admin {
 			$product = $product_id ? wc_get_product( $product_id ) : new WC_Product_Simple();
 
 			if ( ! $product ) {
-				$new_product_id = new WP_Error( 'product_not_found', 'Product not found' );
+				$new_product_id = new WP_Error( 'product_not_found', __( 'Product not found.', 'bizzio-sync-for-woocommerce' ) );
 			} else {
 				$product->set_name( $product_name );
 				$product->set_description( $product_description );
@@ -406,7 +431,7 @@ class Bizzio_Sync_Gencloud_Admin {
 				$product->set_sku( $product_barcode );
 				$product->set_price( $product_price );
 				$product->set_regular_price( $product_price );
-				$product->set_manage_stock( 'yes' );
+				$product->set_manage_stock( true );
 				$product->set_stock_quantity( $product_qty );
 				$product->set_stock_status( $product_qty > 0 ? 'instock' : 'outofstock' );
 				$product->update_meta_data( '_bizzio_barcode', $product_barcode );
@@ -477,7 +502,7 @@ class Bizzio_Sync_Gencloud_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce' ) ), 403 );
 		}
-		check_ajax_referer( 'bizzio_import_products_nonce', 'security' ); // Using the same nonce for simplicity
+		check_ajax_referer( 'bizzio_import_products_nonce', 'security' );
 
 		$current_progress = get_option( 'bizzio_sync_gencloud_import_progress', 0 );
 		$total_articles   = get_option( 'bizzio_sync_gencloud_total_articles', 0 );
@@ -516,7 +541,7 @@ class Bizzio_Sync_Gencloud_Admin {
 			wp_send_json_error(
 				array(
 					'message'  => $response->get_error_message(),
-					'response' => is_callable( array( $response, 'get_error_data' ) ) ? $response->get_error_data() : '',
+					'response' => $response->get_error_data(),
 				)
 			);
 		}
@@ -548,7 +573,7 @@ class Bizzio_Sync_Gencloud_Admin {
 		$total_categories = count( $categories_to_import );
 
 		// Store categories and reset progress counters.
-		update_option( 'bizzio_sync_gencloud_categories_to_import', $categories_to_import );
+		update_option( 'bizzio_sync_gencloud_categories_to_import', $categories_to_import, false );
 		update_option( 'bizzio_sync_gencloud_total_categories', $total_categories );
 		update_option( 'bizzio_sync_gencloud_category_import_progress', 0 );
 		update_option( 'bizzio_sync_gencloud_category_imported_count', 0 );
@@ -604,7 +629,7 @@ class Bizzio_Sync_Gencloud_Admin {
 			$category_name        = $category_data['Name'];
 			$category_id          = $category_data['ID'];
 			$parent_id            = $category_data['ID_Parent'];
-			$category_description = $category_data['Note'];
+			$category_description = wp_kses_post( $category_data['Note'] );
 			$category_image_url   = $category_data['Image'];
 
 			$parent_term_id = 0;
@@ -645,7 +670,7 @@ class Bizzio_Sync_Gencloud_Admin {
 
 			if ( ! is_wp_error( $term_id_result ) ) {
 				++$imported_count;
-				$new_term_id = is_array( $term_id_result ) ? $term_id_result['term_id'] : $term_id_result;
+				$new_term_id = (int) $term_id_result['term_id'];
 
 				// Download and set category thumbnail using Image Helper.
 				if ( ! empty( $category_image_url ) ) {

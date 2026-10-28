@@ -10,7 +10,6 @@
 
 // If uninstall not called from WordPress, then exit.
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-	// phpcs:ignore Generic.PHP.ForbiddenFunctions.FoundWithAlternative
 	exit;
 }
 
@@ -24,6 +23,8 @@ $bizzio_sync_options = array(
 	'bizzio_sync_gencloud_total_articles',
 	'bizzio_sync_gencloud_import_progress',
 	'bizzio_sync_gencloud_imported_count',
+	'bizzio_sync_gencloud_created_count',
+	'bizzio_sync_gencloud_updated_count',
 	'bizzio_sync_gencloud_failed_count',
 	'bizzio_sync_gencloud_import_status',
 	'bizzio_sync_gencloud_categories_to_import',

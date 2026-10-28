@@ -8,6 +8,20 @@
  * @package    Bizzio_Sync_Gencloud
  * @subpackage Bizzio_Sync_Gencloud/includes/api
  */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Property names mirror the Bizzio SOAP schema.
+
+/**
+ * The GetArticles API class.
+ *
+ * @since      1.1.0
+ * @package    Bizzio_Sync_Gencloud
+ * @subpackage Bizzio_Sync_Gencloud/includes/api
+ */
 class Bizzio_Sync_Gencloud_Api_Get_Articles extends Bizzio_Sync_Gencloud_Api_Client {
 
 	/**
@@ -30,9 +44,9 @@ class Bizzio_Sync_Gencloud_Api_Get_Articles extends Bizzio_Sync_Gencloud_Api_Cli
 		$args = wp_parse_args( $args, $defaults );
 
 		$soap_action  = 'http://tempuri.org/IRiznShopExtService/GetArticles';
-		$request_body = $this->_build_get_articles_request_body( $args );
+		$request_body = $this->build_get_articles_request_body( $args );
 
-		$response = $this->_make_soap_request( $soap_action, $request_body );
+		$response = $this->make_soap_request( $soap_action, $request_body );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -45,59 +59,54 @@ class Bizzio_Sync_Gencloud_Api_Get_Articles extends Bizzio_Sync_Gencloud_Api_Cli
 			return new WP_Error( 'bizzio_xml_error', __( 'Failed to parse XML response for products.', 'bizzio-sync-for-woocommerce' ) );
 		}
 
-		$response_element = $this->_process_bizzio_response( $xml, 'products' );
+		$response_element = $this->process_bizzio_response( $xml, 'products' );
 
 		if ( is_wp_error( $response_element ) ) {
 			return $response_element;
 		}
 
-		return $this->_parse_articles_response( $xml, $response_element );
+		return $this->parse_articles_response( $xml, $response_element );
 	}
 
 	/**
 	 * Build the GetArticlesRequest XML body.
 	 *
-	 * @since    1.2.0
+	 * @since    1.1.0
 	 * @param    array $args Request arguments.
 	 * @return   string The XML request body.
 	 */
-	private function _build_get_articles_request_body( $args ) {
+	private function build_get_articles_request_body( $args ) {
 		$available_only       = $args['available_only'] ? 'true' : 'false';
 		$is_cars              = $args['is_cars'] ? 'true' : 'false';
 		$is_files             = $args['is_files'] ? 'true' : 'false';
 		$is_qty_by_warehouses = $args['is_qty_by_warehouses'] ? 'true' : 'false';
 
-		return '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/" xmlns:biz="http://schemas.datacontract.org/2004/07/Bizzio.Srv.Extensions.RiznShop" xmlns:arr="http://schemas.microsoft.com/2003/10/Serialization/Arrays">
-			<soapenv:Header>
-				<tem:Authentication xmlns:tem="http://tempuri.org/">
-					<biz:Database xmlns:biz="http://schemas.datacontract.org/2004/07/Bizzio.Srv.Extensions.RiznShop">' . $this->api_database . '</biz:Database>
-					<biz:Username xmlns:biz="http://schemas.datacontract.org/2004/07/Bizzio.Srv.Extensions.RiznShop">' . $this->api_username . '</biz:Username>
-					<biz:Password xmlns:biz="http://schemas.datacontract.org/2004/07/Bizzio.Srv.Extensions.RiznShop">' . $this->api_password . '</biz:Password>
-				</tem:Authentication>
-			</soapenv:Header>
-			<soapenv:Body>
-				<tem:GetArticlesRequest xmlns:tem="http://tempuri.org/">
+		$currency = empty( $args['currency'] )
+			? '<tem:Currency xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>'
+			: '<tem:Currency>' . esc_xml( $args['currency'] ) . '</tem:Currency>';
+
+		return $this->build_envelope(
+			'<tem:GetArticlesRequest xmlns:tem="http://tempuri.org/">
 					<tem:AvailableOnly>' . $available_only . '</tem:AvailableOnly>
 					<tem:Barcodes xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
-					<tem:Currency xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
-					<tem:ID_Site>' . $this->id_site . '</tem:ID_Site>
+					' . $currency . '
+					<tem:ID_Site>' . esc_xml( $this->id_site ) . '</tem:ID_Site>
 					<tem:IsCars>' . $is_cars . '</tem:IsCars>
 					<tem:IsFiles>' . $is_files . '</tem:IsFiles>
 					<tem:IsQtyByWarehouses>' . $is_qty_by_warehouses . '</tem:IsQtyByWarehouses>
-				</tem:GetArticlesRequest>
-			</soapenv:Body>
-		</soapenv:Envelope>';
+				</tem:GetArticlesRequest>'
+		);
 	}
 
 	/**
 	 * Parse the GetArticles XML response into a structured array.
 	 *
-	 * @since    1.2.0
+	 * @since    1.1.0
 	 * @param    SimpleXMLElement $xml              The full XML response.
 	 * @param    SimpleXMLElement $response_element The GetArticlesResponse element.
 	 * @return   array Array of parsed articles.
 	 */
-	private function _parse_articles_response( $xml, $response_element ) {
+	private function parse_articles_response( $xml, $response_element ) {
 		$namespaces = $xml->getNamespaces( true );
 		$articles   = array();
 
