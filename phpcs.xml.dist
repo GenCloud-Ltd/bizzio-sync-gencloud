@@ -1,65 +1,65 @@
 <?xml version="1.0"?>
-<ruleset name="Bizzio">
-  <file>bizzio-sync-for-woocommerce</file>
+<ruleset name="Bizzio Sync for WooCommerce">
+	<description>WordPress Coding Standards + PHP compatibility for the free WP.org plugin.</description>
 
-  <exclude-pattern>*/vendor/*</exclude-pattern>
-  <exclude-pattern>*/node_modules/*</exclude-pattern>
-  <exclude-pattern>*/.git/*</exclude-pattern>
-  <exclude-pattern>*/.github/*</exclude-pattern>
-  <exclude-pattern>*/.vscode/*</exclude-pattern>
-  <exclude-pattern>*/assets/*</exclude-pattern>
+	<file>bizzio-sync-for-woocommerce</file>
 
-  <arg value="p"/>
-  <arg value="s"/>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/build/*</exclude-pattern>
+	<exclude-pattern>*.min.js</exclude-pattern>
+	<exclude-pattern>*.min.css</exclude-pattern>
 
-  <rule ref="WordPress-Core"/>
-  <rule ref="WordPress-Extra"/>
-  <rule ref="WordPress-Docs"/>
+	<arg name="extensions" value="php"/>
+	<arg name="basepath" value="./"/>
+	<arg name="cache" value=".phpcs-cache"/>
+	<arg name="parallel" value="8"/>
+	<arg name="colors"/>
+	<arg value="ps"/>
 
-  <rule ref="PHPCompatibility"/>
-  <config name="testVersion" value="8.1-8.3"/>
+	<!-- Keep in sync with readme.txt "Requires PHP" / "Requires at least". -->
+	<config name="testVersion" value="7.4-"/>
+	<config name="minimum_wp_version" value="6.5"/>
 
-  <rule ref="Generic.PHP.ForbiddenFunctions">
-  <properties>
-    <property name="forbiddenFunctions" type="array">
-      <element key="var_dump" value=""/>
-      <element key="print_r" value=""/>
+	<rule ref="WordPress-Extra"/>
+	<rule ref="WordPress-Docs"/>
+	<rule ref="PHPCompatibilityWP"/>
 
-<!-- Termination -->
-      <element key="die" value=""/>
-      <element key="exit" value=""/>
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="bizzio-sync-for-woocommerce"/>
+			</property>
+		</properties>
+	</rule>
 
-      <!-- Old MySQL -->
-      <element key="mysql_query" value=""/>
-      <element key="mysql_connect" value=""/>
-      <element key="mysql_pconnect" value=""/>
-      <element key="mysql_select_db" value=""/>
-      <element key="mysql_fetch_array" value=""/>
-      <element key="mysql_fetch_assoc" value=""/>
+	<!-- WP.org review: every global (functions, classes, constants, options, hooks) must be prefixed. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="bizzio_sync_gencloud"/>
+				<element value="bizzio"/>
+			</property>
+		</properties>
+	</rule>
 
-      <!-- Dangerous execution -->
-      <element key="eval" value=""/>
-      <element key="exec" value=""/>
-      <element key="shell_exec" value=""/>
-      <element key="system" value=""/>
-      <element key="passthru" value=""/>
-      <element key="proc_open" value=""/>
-      <element key="popen" value=""/>
-    </property>
-  </properties>
-</rule>
+	<!-- Debug / dangerous functions must not ship. -->
+	<rule ref="Generic.PHP.ForbiddenFunctions">
+		<properties>
+			<property name="forbiddenFunctions" type="array">
+				<element key="var_dump" value="null"/>
+				<element key="var_export" value="null"/>
+				<element key="print_r" value="null"/>
+				<element key="eval" value="null"/>
+				<element key="exec" value="null"/>
+				<element key="shell_exec" value="null"/>
+				<element key="system" value="null"/>
+				<element key="passthru" value="null"/>
+				<element key="proc_open" value="null"/>
+				<element key="popen" value="null"/>
+			</property>
+		</properties>
+	</rule>
 
-<rule ref="Squiz.PHP.CommentedOutCode"/>
-
-  <rule ref="WordPress.WP.I18n">
-    <properties>
-      <property name="text_domain" type="array">
-        <element value="bizzio-sync-for-woocommerce"/>
-      </property>
-    </properties>
-  </rule>
+	<rule ref="Squiz.PHP.CommentedOutCode"/>
 </ruleset>
-
-
-
-

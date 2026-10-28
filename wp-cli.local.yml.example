@@ -1,0 +1,3 @@
+# Copy to wp-cli.local.yml (git-ignored) and point it at the LocalWP test site.
+# Then `wp ...` and `composer plugin-check` run from the repo root target that site.
+path: D:/LocalWP-bizzio-free/app/public

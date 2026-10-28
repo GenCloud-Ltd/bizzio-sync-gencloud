@@ -4,18 +4,47 @@
   "type": "project",
   "license": "GPL-2.0-or-later",
   "require-dev": {
-    "squizlabs/php_codesniffer": "^3.10",
-    "wp-coding-standards/wpcs": "^3.0",
-    "phpcompatibility/php-compatibility": "^9.3",
-    "dealerdirect/phpcodesniffer-composer-installer": "^1.0"
+    "squizlabs/php_codesniffer": "^3.13.5",
+    "wp-coding-standards/wpcs": "^3.4",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "phpstan/phpstan": "^2.1",
+    "szepeviktor/phpstan-wordpress": "^2.0",
+    "php-stubs/woocommerce-stubs": "*",
+    "phpstan/extension-installer": "^1.4"
   },
   "config": {
     "allow-plugins": {
-      "dealerdirect/phpcodesniffer-composer-installer": true
-    }
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "sort-packages": true
   },
   "scripts": {
-    "lint": "vendor/bin/phpcs",
-    "lint-fix": "vendor/bin/phpcbf"
+    "lint": "phpcs",
+    "lint:fix": "phpcbf",
+    "lint:report": "phpcs --report=source",
+    "analyse": "phpstan analyse --memory-limit=2G",
+    "plugin-check": "wp plugin check bizzio-sync-for-woocommerce --include-experimental",
+    "plugin-check:strict": "wp plugin check bizzio-sync-for-woocommerce --include-experimental --severity=5",
+    "build": "@php bin/build-zip.php bizzio-sync-for-woocommerce build",
+    "version-check": "@php bin/check-versions.php",
+    "qa": [
+      "@version-check",
+      "@lint",
+      "@analyse",
+      "@plugin-check"
+    ]
+  },
+  "scripts-descriptions": {
+    "lint": "PHPCS: WordPress Coding Standards + PHPCompatibilityWP",
+    "lint:fix": "PHPCBF: auto-fix of the fixable PHPCS issues",
+    "lint:report": "PHPCS: summary grouped by sniff",
+    "analyse": "PHPStan with WordPress + WooCommerce stubs",
+    "plugin-check": "Plugin Check (PCP) via WP-CLI against the LocalWP test site (wp-cli.local.yml)",
+    "plugin-check:strict": "Plugin Check, only severity >= 5 (what blocks WP.org review)",
+    "build": "Build the distributable ZIP into ./build using .distignore",
+    "version-check": "Header/readme/constant/changelog versions agree (pass a tag to also compare it)",
+    "qa": "version-check + lint + analyse + plugin-check"
   }
 }

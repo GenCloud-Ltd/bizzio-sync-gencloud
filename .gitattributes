@@ -1,3 +1,11 @@
+# Line endings: always LF (WordPress Coding Standards; CI runs on Linux).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+
 # Export only the plugin directory in GitHub-generated source zips
 
 # 1) Exclude everything by default

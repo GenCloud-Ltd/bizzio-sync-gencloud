@@ -3,7 +3,12 @@
 *-p
 .vscode
 node_modules
-composer.lock
 vendor
 bizzio-sync-for-woocommerce-pro
 Bizzio E-commerce API.pdf
+
+# QA tooling
+/build
+.phpcs-cache
+.phpstan-cache
+wp-cli.local.yml
