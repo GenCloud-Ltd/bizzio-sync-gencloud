@@ -7,6 +7,8 @@ on:
     branches: [main, dev]
   pull_request:
     branches: [main, dev]
+    # "edited": re-check when the PR title/description changes.
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
   workflow_call:
 
@@ -21,6 +23,41 @@ env:
   PLUGIN_SLUG: bizzio-sync-for-woocommerce
 
 jobs:
+  attribution:
+    name: No tool/AI attribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Commit messages
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            range="$PR_BASE..$PR_HEAD"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            prev="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
+            range="${prev:-HEAD^}..HEAD"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            range="$BEFORE..$GITHUB_SHA"
+          else
+            range="$GITHUB_SHA^!"
+          fi
+          echo "Checking $range"
+          bash bin/check-attribution.sh range "$range"
+
+      - name: Pull request title and description
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY" | bash bin/check-attribution.sh text "pull request"
+
   versions:
     name: Version consistency
     runs-on: ubuntu-latest

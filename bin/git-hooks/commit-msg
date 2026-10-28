@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Reject commit messages with tool/AI attribution (see bin/check-attribution.sh).
+exec "$(git rev-parse --show-toplevel)/bin/check-attribution.sh" file "$1"

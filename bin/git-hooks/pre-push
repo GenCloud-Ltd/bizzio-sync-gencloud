@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Reject pushes whose new commits or annotated tags carry tool/AI attribution
+# (see bin/check-attribution.sh). Only commits the remote does not have yet are checked.
+set -euo pipefail
+
+remote="$1"
+check="$(git rev-parse --show-toplevel)/bin/check-attribution.sh"
+zero="0000000000000000000000000000000000000000"
+failed=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+	[ "$local_sha" = "$zero" ] && continue # branch/tag deletion
+
+	# Annotated tag: check its own message too.
+	if [ "$(git cat-file -t "$local_sha")" = "tag" ]; then
+		git cat-file -p "$local_sha" | sed '1,/^$/d' | "$check" text "tag ${local_ref#refs/tags/}" || failed=1
+	fi
+
+	commit="$(git rev-parse "$local_sha^{commit}")"
+	if [ "$remote_sha" = "$zero" ]; then
+		range="$commit --not --remotes=$remote"
+	else
+		range="$remote_sha..$commit"
+	fi
+
+	for sha in $(git rev-list $range); do
+		"$check" range "$sha^!" || failed=1
+	done
+done
+
+if [ "$failed" -ne 0 ]; then
+	echo "Push rejected: reword the commits above (git rebase -i / git commit --amend)." >&2
+fi
+exit "$failed"

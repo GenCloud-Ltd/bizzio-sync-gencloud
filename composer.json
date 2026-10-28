@@ -21,6 +21,13 @@
     "sort-packages": true
   },
   "scripts": {
+    "hooks": "git config core.hooksPath bin/git-hooks",
+    "post-install-cmd": [
+      "@hooks"
+    ],
+    "post-update-cmd": [
+      "@hooks"
+    ],
     "lint": "phpcs",
     "lint:fix": "phpcbf",
     "lint:report": "phpcs --report=source",
@@ -29,7 +36,9 @@
     "plugin-check:strict": "wp plugin check bizzio-sync-for-woocommerce --include-experimental --severity=5",
     "build": "@php bin/build-zip.php bizzio-sync-for-woocommerce build",
     "version-check": "@php bin/check-versions.php",
+    "attribution-check": "bash bin/check-attribution.sh range origin/main..HEAD",
     "qa": [
+      "@attribution-check",
       "@version-check",
       "@lint",
       "@analyse",
@@ -45,6 +54,8 @@
     "plugin-check:strict": "Plugin Check, only severity >= 5 (what blocks WP.org review)",
     "build": "Build the distributable ZIP into ./build using .distignore",
     "version-check": "Header/readme/constant/changelog versions agree (pass a tag to also compare it)",
-    "qa": "version-check + lint + analyse + plugin-check"
+    "qa": "attribution-check + version-check + lint + analyse + plugin-check",
+    "hooks": "Enable the repo git hooks (commit-msg + pre-push attribution guard)",
+    "attribution-check": "No Co-Authored-By / Generated-by / assistant attribution in commits not yet on main"
   }
 }
