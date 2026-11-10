@@ -25,9 +25,9 @@ env:
 jobs:
   attribution:
     name: No tool/AI attribution
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -60,9 +60,9 @@ jobs:
 
   versions:
     name: Version consistency
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -77,14 +77,14 @@ jobs:
 
   php-lint:
     name: PHP ${{ matrix.php }} syntax
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         # readme.txt "Requires PHP: 7.4" up to the newest supported release.
         php: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4", "8.5"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -101,9 +101,9 @@ jobs:
 
   static-analysis:
     name: PHPCS (WPCS) + PHPStan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -111,7 +111,7 @@ jobs:
           coverage: none
           tools: cs2pr
 
-      - uses: ramsey/composer-install@v3
+      - uses: ramsey/composer-install@v4
 
       - name: PHPCS – WordPress Coding Standards + PHPCompatibilityWP
         run: vendor/bin/phpcs --no-cache --report-full --report-checkstyle=./phpcs-report.xml
@@ -125,9 +125,9 @@ jobs:
 
   plugin-check:
     name: Plugin Check (WP.org)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
