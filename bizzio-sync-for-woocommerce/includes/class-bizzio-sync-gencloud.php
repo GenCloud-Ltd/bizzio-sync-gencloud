@@ -70,7 +70,7 @@ class Bizzio_Sync_Gencloud {
 		if ( defined( 'BIZZIO_SYNC_GENCLOUD_VERSION' ) ) {
 			$this->version = BIZZIO_SYNC_GENCLOUD_VERSION;
 		} else {
-			$this->version = '1.1.1';
+			$this->version = '1.2.0';
 		}
 		$this->plugin_name = 'bizzio-sync-gencloud';
 
@@ -146,6 +146,26 @@ class Bizzio_Sync_Gencloud {
 		$this->loader->add_action( 'wp_ajax_bizzio_get_import_progress', $plugin_admin, 'get_import_progress_callback' );
 		$this->loader->add_action( 'wp_ajax_bizzio_process_category_batch', $plugin_admin, 'process_category_batch_callback' );
 		$this->loader->add_action( 'wp_ajax_bizzio_get_category_import_progress', $plugin_admin, 'get_category_import_progress_callback' );
+		$this->loader->add_filter( 'plugin_action_links_' . plugin_basename( BIZZIO_SYNC_GENCLOUD_FILE ), $plugin_admin, 'plugin_action_links' );
+	}
+
+	/**
+	 * Announce that the plugin is ready, so add-ons can hook in.
+	 *
+	 * Fired on plugins_loaded, so add-ons work regardless of plugin load order:
+	 *
+	 *     add_action( 'bizzio_sync_loaded', function ( $bizzio_sync ) { ... } );
+	 *
+	 * @since    1.2.0
+	 */
+	public function loaded() {
+		/**
+		 * Fires once Bizzio Sync is loaded. Bizzio_Sync_Gencloud_Api_Client is available from here on.
+		 *
+		 * @since 1.2.0
+		 * @param Bizzio_Sync_Gencloud $bizzio_sync The main plugin instance.
+		 */
+		do_action( 'bizzio_sync_loaded', $this );
 	}
 
 
@@ -156,6 +176,7 @@ class Bizzio_Sync_Gencloud {
 	 * @since    1.0.0
 	 */
 	public function run() {
+		$this->loader->add_action( 'plugins_loaded', $this, 'loaded' );
 		$this->loader->run();
 	}
 

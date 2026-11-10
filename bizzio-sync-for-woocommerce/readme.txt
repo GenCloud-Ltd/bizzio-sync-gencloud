@@ -1,18 +1,18 @@
-=== Bizzio Sync for WooCommerce ===
+=== Bizzio ERP Sync for WooCommerce ===
 Contributors: gencloud
 Tags: woocommerce, bizzio, erp, sync, import
 Requires at least: 6.5
 Tested up to: 7.1
-Stable tag: 1.1.1
+Stable tag: 1.2.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Bizzio Sync for WooCommerce allows you to easily import products and categories from your Bizzio ERP to your WooCommerce store.
+Import products, categories, prices, stock and images from Bizzio ERP into your WooCommerce store.
 
 == Description ==
 
-Bizzio Sync for WooCommerce is a powerful integration plugin that connects your WooCommerce store to the Bizzio ERP system, enabling seamless synchronization of your product catalog, categories, and attributes — all with just a few clicks.
+Bizzio ERP Sync for WooCommerce is an integration plugin that connects your WooCommerce store to the Bizzio ERP system, enabling seamless synchronization of your product catalog, categories, and attributes — all with just a few clicks.
 
 *   **Import Products:** Sync your products from Bizzio to WooCommerce, including product name, description, price, and stock quantity.
 *   **Import Categories:** Sync your product categories from Bizzio to WooCommerce, maintaining the category hierarchy.
@@ -22,11 +22,36 @@ Bizzio Sync for WooCommerce is a powerful integration plugin that connects your 
 
 Note: This plugin requires valid API credentials provided by GenCloud Ltd. and access to a working Bizzio ERP instance.
 
+= Bizzio ERP Sync PRO =
+
+The separate PRO add-on sends WooCommerce orders back to Bizzio ERP:
+
+*   Automatic order sync to Bizzio ERP.
+*   Send orders as offers.
+*   Payment and shipping method mapping.
+*   Company invoice data (VAT number, MOL).
+*   One-click resend of failed orders.
+
+Learn more at [incloud.bg](https://incloud.bg/bizzio-sync-for-woocommerce-pro/).
+
+= For developers =
+
+Add-ons can call any Bizzio API method through `Bizzio_Sync_Gencloud_Api_Client::call()` and hook into the import:
+
+*   `bizzio_sync_loaded` (action) – the plugin is loaded; the API client is available.
+*   `bizzio_sync_admin_menu` (action) – add submenu pages under Bizzio Sync.
+*   `bizzio_sync_settings_sidebar` (action) – output boxes in the settings page sidebar.
+*   `bizzio_sync_before_product_save` (action) – change an imported product before it is saved.
+*   `bizzio_sync_product_imported` / `bizzio_sync_category_imported` (actions) – run after each imported item.
+*   `bizzio_sync_get_articles_args` (filter) – change the GetArticles request arguments.
+*   `bizzio_sync_import_batch_size` (filter) – items per import request (default 10).
+*   `bizzio_sync_api_endpoint` (filter) – use a different Bizzio API URL, e.g. a test server.
+
 == External Services ==
 
 This plugin connects to the Bizzio ERP API, a service operated by GenCloud Ltd., to import product and category data into WooCommerce. The plugin cannot work without it.
 
-* **What is sent:** the API credentials entered on the settings page (Database, Username, Password and Site ID) and, for product imports, the store currency code.
+* **What is sent:** the API credentials entered on the settings page (Database, Username, Password and Site ID), for product imports the store currency code, and a User-Agent header with the plugin name and version, the WordPress and WooCommerce versions and the site address.
 * **When:** only when a store administrator clicks "Test Connection", "Import Categories" or "Import Products". Nothing is sent automatically, in the background, or on front-end page views.
 * **Where:** `https://bizzio.gencloud.bg/Services/Extensions/RiznShopExtService.svc`. Product and category images returned by the API are downloaded from the image addresses it provides.
 * **What is not sent:** no customer, order, visitor or other site data.
@@ -59,6 +84,15 @@ For support, please contact us at [web@gencloud.bg](mailto:web@gencloud.bg).
 3.  The category import page.
 
 == Changelog ==
+
+= 1.2.0 - 2026-11-10 =
+* Renamed to "Bizzio ERP Sync for WooCommerce". The plugin slug and settings are unchanged.
+* New: extension API for add-ons – `Bizzio_Sync_Gencloud_Api_Client::call()` for any Bizzio API method, plus actions and filters for the menu, settings page and product/category import.
+* New: "Settings" link on the Plugins screen.
+* API requests now identify the plugin and its version in the User-Agent header (see External Services).
+* New: information about the PRO add-on on the settings page and the Plugins screen (hidden when PRO is active).
+* Fix: an unexpected (non-SOAP) API response no longer triggers PHP warnings.
+* Fix: "Test Connection" now shows a progress indicator and a clear message when the request fails (expired session, HTTP error or timeout) instead of showing nothing.
 
 = 1.1.1 - 2026-10-28 =
 * Tested up to WordPress 7.1 and WooCommerce 11.2. Requires WordPress 6.5+ (needed for the "Requires Plugins" header).
@@ -103,3 +137,7 @@ For support, please contact us at [web@gencloud.bg](mailto:web@gencloud.bg).
 * Added batch processing and progress tracking.
 * Added connection testing.
 
+== Upgrade Notice ==
+
+= 1.2.0 =
+New name and an extension API for add-ons. No changes to your settings or imported data.
