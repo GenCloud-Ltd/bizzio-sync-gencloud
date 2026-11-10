@@ -9,22 +9,52 @@
 				function (e) {
 					e.preventDefault();
 
-					var data = {
-						'action': 'bizzio_test_connection',
-						'security': bizzio_sync_gencloud_ajax.test_connection_nonce
+					var $button   = $( this );
+					var resultDiv = $( '#bizzio-test-connection-result' );
+					var i18n      = bizzio_sync_gencloud_ajax.i18n;
+
+					// Server messages are HTML-escaped; decode the entities and insert as plain text.
+					var showResult = function (message, ok) {
+						var text = new DOMParser().parseFromString( '<!doctype html><body>' + message, 'text/html' ).body.textContent;
+						resultDiv.empty().append( $( '<p>' ).css( 'color', ok ? 'green' : '#b32d2e' ).text( text ) );
 					};
 
-					$.post(
-						bizzio_sync_gencloud_ajax.ajax_url,
-						data,
-						function (response) {
-							var resultDiv = $( '#bizzio-test-connection-result' );
-							if (response.success) {
-								resultDiv.html( '<p style="color: green;">' + response.data.message + '</p>' );
-							} else {
-								resultDiv.html( '<p style="color: red;">' + response.data.message + '</p>' );
+					$button.prop( 'disabled', true );
+					resultDiv.empty().append( $( '<p>' ).append( $( '<span class="spinner is-active" style="float:none;margin:0 6px 0 0">' ), document.createTextNode( i18n.testing ) ) );
+
+					$.ajax(
+						{
+							url: bizzio_sync_gencloud_ajax.ajax_url,
+							method: 'POST',
+							dataType: 'json',
+							timeout: 75000,
+							data: {
+								'action': 'bizzio_test_connection',
+								'security': bizzio_sync_gencloud_ajax.test_connection_nonce
 							}
-							console.log( response );
+						}
+					).done(
+						function (response) {
+							var message = response && response.data && response.data.message ? response.data.message : i18n.request_failed.replace( '%s', '200' );
+							showResult( message, !! ( response && response.success ) );
+						}
+					).fail(
+						function (xhr, status) {
+							var message;
+							if ( 'timeout' === status ) {
+								message = i18n.timeout;
+							} else if ( xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ) {
+								message = xhr.responseJSON.data.message;
+							} else if ( 403 === xhr.status || '-1' === xhr.responseText ) {
+								message = i18n.session_expired;
+							} else {
+								message = i18n.request_failed.replace( '%s', xhr.status || status );
+							}
+							showResult( message, false );
+						}
+					).always(
+						function () {
+							$button.prop( 'disabled', false );
 						}
 					);
 				}

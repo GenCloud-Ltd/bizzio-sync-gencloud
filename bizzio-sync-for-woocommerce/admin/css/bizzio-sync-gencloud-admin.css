@@ -22,3 +22,7 @@
 	color: #fff;
 	background-color: #4caf50;
 }
+.bizzio-sync-pro-box ul {
+	list-style: disc;
+	margin-left: 1.5em;
+}

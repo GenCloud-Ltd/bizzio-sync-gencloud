@@ -24,6 +24,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Bizzio_Sync_Gencloud_Admin {
 
+	/**
+	 * Product page of the PRO add-on.
+	 *
+	 * @since    1.2.0
+	 * @var      string
+	 */
+	const PRO_URL = 'https://incloud.bg/bizzio-sync-for-woocommerce-pro/';
 
 	/**
 	 * The ID of this plugin.
@@ -82,6 +89,13 @@ class Bizzio_Sync_Gencloud_Admin {
 				'import_products_nonce'   => wp_create_nonce( 'bizzio_import_products_nonce' ),
 				'import_categories_nonce' => wp_create_nonce( 'bizzio_import_categories_nonce' ),
 				'test_connection_nonce'   => wp_create_nonce( 'bizzio_test_connection_nonce' ),
+				'i18n'                    => array(
+					'testing'         => __( 'Testing connection…', 'bizzio-sync-for-woocommerce' ),
+					'session_expired' => __( 'Your session has expired. Reload the page and try again.', 'bizzio-sync-for-woocommerce' ),
+					'timeout'         => __( 'No response from the Bizzio API in time. Please try again later.', 'bizzio-sync-for-woocommerce' ),
+					/* translators: %s: HTTP status code */
+					'request_failed'  => __( 'The request failed (HTTP %s). Please try again.', 'bizzio-sync-for-woocommerce' ),
+				),
 			)
 		);
 	}
@@ -92,7 +106,7 @@ class Bizzio_Sync_Gencloud_Admin {
 	public function add_plugin_admin_menu() {
 
 		add_menu_page(
-			__( 'Bizzio Sync Gencloud', 'bizzio-sync-for-woocommerce' ),
+			__( 'Bizzio ERP Sync', 'bizzio-sync-for-woocommerce' ),
 			__( 'Bizzio Sync', 'bizzio-sync-for-woocommerce' ),
 			'manage_options',
 			$this->plugin_name,
@@ -127,6 +141,75 @@ class Bizzio_Sync_Gencloud_Admin {
 			$this->plugin_name . '-products',
 			array( $this, 'display_products_page' )
 		);
+
+		/**
+		 * Fires after the Bizzio Sync menu is registered, so add-ons can add their own submenu pages.
+		 *
+		 * @since 1.2.0
+		 * @param string $parent_slug The Bizzio Sync menu slug, for add_submenu_page().
+		 */
+		do_action( 'bizzio_sync_admin_menu', $this->plugin_name );
+	}
+
+	/**
+	 * Whether the PRO add-on is active.
+	 *
+	 * @since    1.2.0
+	 * @return   bool
+	 */
+	public function is_pro_active() {
+		/**
+		 * Filters whether the PRO add-on is active. Hides the upgrade links and box when true.
+		 *
+		 * @since 1.2.0
+		 * @param bool $is_pro_active Whether the PRO add-on is active.
+		 */
+		return (bool) apply_filters( 'bizzio_sync_is_pro_active', defined( 'BIZZIO_SYNC_FOR_WOOCOMMERCE_PRO_VERSION' ) );
+	}
+
+	/**
+	 * Get the PRO product page URL.
+	 *
+	 * @since    1.2.0
+	 * @param    string $placement Where the link is shown, used as utm_medium.
+	 * @return   string
+	 */
+	public function get_pro_url( $placement ) {
+		return add_query_arg(
+			array(
+				'utm_source'   => 'bizzio-sync-free',
+				'utm_medium'   => $placement,
+				'utm_campaign' => 'upgrade',
+			),
+			self::PRO_URL
+		);
+	}
+
+	/**
+	 * Add Settings and Get PRO links to the plugin row on the Plugins screen.
+	 *
+	 * @since    1.2.0
+	 * @param    string[] $links Plugin action links.
+	 * @return   string[]
+	 */
+	public function plugin_action_links( $links ) {
+		$plugin_links = array(
+			'settings' => sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( admin_url( 'admin.php?page=' . $this->plugin_name ) ),
+				esc_html__( 'Settings', 'bizzio-sync-for-woocommerce' )
+			),
+		);
+
+		if ( ! $this->is_pro_active() ) {
+			$plugin_links['get_pro'] = sprintf(
+				'<a href="%s" target="_blank" rel="noopener noreferrer" style="font-weight:600">%s</a>',
+				esc_url( $this->get_pro_url( 'plugins-list' ) ),
+				esc_html__( 'Get PRO', 'bizzio-sync-for-woocommerce' )
+			);
+		}
+
+		return array_merge( $plugin_links, $links );
 	}
 
 	/**
@@ -321,6 +404,24 @@ class Bizzio_Sync_Gencloud_Admin {
 	}
 
 	/**
+	 * Number of items processed per AJAX batch.
+	 *
+	 * @since    1.2.0
+	 * @param    string $type 'products' or 'categories'.
+	 * @return   int
+	 */
+	private function get_batch_size( $type ) {
+		/**
+		 * Filters how many items are imported per AJAX request. Lower it if imports time out.
+		 *
+		 * @since 1.2.0
+		 * @param int    $batch_size Items per request. Default 10.
+		 * @param string $type       'products' or 'categories'.
+		 */
+		return max( 1, absint( apply_filters( 'bizzio_sync_import_batch_size', 10, $type ) ) );
+	}
+
+	/**
 	 * Handle AJAX request for importing products
 	 */
 	public function import_products_callback() {
@@ -329,8 +430,15 @@ class Bizzio_Sync_Gencloud_Admin {
 		}
 		check_ajax_referer( 'bizzio_import_products_nonce', 'security' );
 
-		$api_client         = new Bizzio_Sync_Gencloud_Api_Get_Articles();
-		$articles_to_import = $api_client->fetch( array( 'currency' => get_woocommerce_currency() ) );
+		$api_client = new Bizzio_Sync_Gencloud_Api_Get_Articles();
+		/**
+		 * Filters the GetArticles request arguments used by the product import.
+		 *
+		 * @since 1.2.0
+		 * @param array $args See Bizzio_Sync_Gencloud_Api_Get_Articles::fetch().
+		 */
+		$fetch_args         = apply_filters( 'bizzio_sync_get_articles_args', array( 'currency' => get_woocommerce_currency() ) );
+		$articles_to_import = $api_client->fetch( $fetch_args );
 
 		if ( is_wp_error( $articles_to_import ) ) {
 			wp_send_json_error(
@@ -384,7 +492,7 @@ class Bizzio_Sync_Gencloud_Admin {
 		$updated_count      = get_option( 'bizzio_sync_gencloud_updated_count', 0 );
 		$failed_count       = get_option( 'bizzio_sync_gencloud_failed_count', 0 );
 
-		$batch_size                  = 10;
+		$batch_size                  = $this->get_batch_size( 'products' );
 		$articles_processed_in_batch = 0;
 
 		if ( empty( $articles_to_import ) || $current_progress >= $total_articles ) {
@@ -421,6 +529,7 @@ class Bizzio_Sync_Gencloud_Admin {
 			);
 
 			$product = $product_id ? wc_get_product( $product_id ) : new WC_Product_Simple();
+			$is_new  = ! $product_id;
 
 			if ( ! $product ) {
 				$new_product_id = new WP_Error( 'product_not_found', __( 'Product not found.', 'bizzio-sync-for-woocommerce' ) );
@@ -435,6 +544,16 @@ class Bizzio_Sync_Gencloud_Admin {
 				$product->set_stock_quantity( $product_qty );
 				$product->set_stock_status( $product_qty > 0 ? 'instock' : 'outofstock' );
 				$product->update_meta_data( '_bizzio_barcode', $product_barcode );
+
+				/**
+				 * Fires before an imported product is saved, so add-ons can set more fields in the same save.
+				 *
+				 * @since 1.2.0
+				 * @param WC_Product $product      The product being imported.
+				 * @param array      $article_data The parsed Bizzio article (see Bizzio_Sync_Gencloud_Api_Get_Articles).
+				 * @param bool       $is_new       Whether the product is being created.
+				 */
+				do_action( 'bizzio_sync_before_product_save', $product, $article_data, $is_new );
 
 				$new_product_id = $product->save();
 
@@ -464,6 +583,16 @@ class Bizzio_Sync_Gencloud_Admin {
 				if ( ! empty( $article_data['Files'] ) ) {
 					Bizzio_Sync_Gencloud_Image_Helper::process_product_images( $new_product_id, $article_data['Files'] );
 				}
+
+				/**
+				 * Fires after a product has been imported with its categories and images.
+				 *
+				 * @since 1.2.0
+				 * @param int   $product_id   The WooCommerce product ID.
+				 * @param array $article_data The parsed Bizzio article.
+				 * @param bool  $is_new       Whether the product was created.
+				 */
+				do_action( 'bizzio_sync_product_imported', (int) $new_product_id, $article_data, $is_new );
 			} else {
 				++$failed_count;
 			}
@@ -532,7 +661,9 @@ class Bizzio_Sync_Gencloud_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'bizzio-sync-for-woocommerce' ) ), 403 );
 		}
-		check_ajax_referer( 'bizzio_test_connection_nonce', 'security' );
+		if ( ! check_ajax_referer( 'bizzio_test_connection_nonce', 'security', false ) ) {
+			wp_send_json_error( array( 'message' => esc_html__( 'Your session has expired. Reload the page and try again.', 'bizzio-sync-for-woocommerce' ) ), 403 );
+		}
 
 		$api_client = new Bizzio_Sync_Gencloud_Api_Get_Site_Groups();
 		$response   = $api_client->test_connection();
@@ -608,7 +739,7 @@ class Bizzio_Sync_Gencloud_Admin {
 		$imported_count       = get_option( 'bizzio_sync_gencloud_category_imported_count', 0 );
 		$failed_count         = get_option( 'bizzio_sync_gencloud_category_failed_count', 0 );
 
-		$batch_size                    = 10;
+		$batch_size                    = $this->get_batch_size( 'categories' );
 		$categories_processed_in_batch = 0;
 
 		if ( empty( $categories_to_import ) || $current_progress >= $total_categories ) {
@@ -676,6 +807,16 @@ class Bizzio_Sync_Gencloud_Admin {
 				if ( ! empty( $category_image_url ) ) {
 					Bizzio_Sync_Gencloud_Image_Helper::set_category_thumbnail( $new_term_id, $category_image_url );
 				}
+
+				/**
+				 * Fires after a category has been imported.
+				 *
+				 * @since 1.2.0
+				 * @param int   $term_id       The product_cat term ID.
+				 * @param array $category_data The parsed Bizzio site group (see Bizzio_Sync_Gencloud_Api_Get_Site_Groups).
+				 * @param bool  $is_new        Whether the category was created.
+				 */
+				do_action( 'bizzio_sync_category_imported', $new_term_id, $category_data, ! $term );
 			} else {
 				++$failed_count;
 			}
