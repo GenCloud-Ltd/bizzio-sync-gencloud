@@ -65,6 +65,10 @@ jobs:
     name: QA
     needs: qa-status
     if: needs.qa-status.outputs.passed != 'true'
+    # Upper bound for the called workflow; its Plugin Check job asks for pull-requests: write.
+    permissions:
+      contents: read
+      pull-requests: write
     uses: ./.github/workflows/ci.yml
 
   build:

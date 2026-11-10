@@ -126,6 +126,10 @@ jobs:
   plugin-check:
     name: Plugin Check (WP.org)
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # plugin-check-action posts its results as a pull request comment.
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
 
